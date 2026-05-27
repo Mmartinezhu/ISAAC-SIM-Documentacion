@@ -5,6 +5,7 @@ Documentacion en espanol para estudiar y practicar NVIDIA Isaac Sim.
 ## Tutoriales
 
 1. [Uso basico de Isaac Sim](tutoriales/01-uso-basico-isaac-sim.md)
+2. [TurtleBot3 Burger, Lidar y Occupancy Map](tutoriales/02-importar-turtlebot3-lidar-occupancy-map.md)
 
 ## Enfoque
 
