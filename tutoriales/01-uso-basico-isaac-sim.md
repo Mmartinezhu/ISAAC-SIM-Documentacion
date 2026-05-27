@@ -2,24 +2,10 @@
 
 Fuente oficial de referencia: [Isaac Sim Basic Usage Tutorial, NVIDIA Isaac Sim 5.1.0](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/introduction/quickstart_isaacsim.html).
 
-Esta guia esta basada en el flujo del tutorial oficial de NVIDIA, pero esta redactada como material de estudio propio en espanol. No es una traduccion literal. Si algo no coincide con tu instalacion, revisa la pagina oficial porque Isaac Sim cambia entre versiones.
 
 ## Objetivo
 
-Al terminar este tutorial deberias poder:
-
-- Abrir Isaac Sim y crear una escena nueva.
-- Agregar un plano de suelo, una luz y cubos a la escena.
-- Distinguir entre un objeto visual y un objeto con fisica.
-- Mover, rotar y escalar objetos desde la interfaz.
-- Repetir la misma idea usando Script Editor o un script standalone de Python.
-
-## Requisitos
-
-- Isaac Sim 5.1.0 instalado.
-- GPU compatible y drivers listos.
-- Haber abierto Isaac Sim al menos una vez para confirmar que carga correctamente.
-- Tener claro donde esta instalado Isaac Sim. En los ejemplos se usa `~/isaacsim` en Linux y `C:\isaacsim` en Windows.
+El objetivo de este tutorial es dar una introudcción sencilla a el programa isaac-sim y a su menu principal asi como algunas opciones del mismo. 
 
 ## Idea central
 
@@ -44,14 +30,7 @@ cd ~/isaacsim
 ./isaac-sim.selector.sh
 ```
 
-Windows:
-
-```bat
-cd C:\isaacsim
-isaac-sim.selector.bat
-```
-
-Cuando Isaac Sim termine de cargar, crea una escena limpia desde `File > New`. La primera carga puede tardar varios minutos.
+Crea una escena limpia desde `File > New`. 
 
 ### 2. Agregar un plano de suelo
 
@@ -67,23 +46,23 @@ Despues de crearlo, deberias verlo en el Stage como un objeto dentro de `/World`
 
 ### 3. Agregar una luz
 
-Una escena puede existir sin luz, pero sera dificil verla. Para iluminarla, crea una luz direccional:
+Una escena puede existir sin luz, pero es dificil verla. Para iluminarla, crea una luz direccional:
 
 ```text
 Create > Lights > Distant Light
 ```
 
-Si no ves cambios inmediatamente, revisa que haya objetos visibles en la escena y que la vista este apuntando hacia ellos.
+revisa que haya objetos visibles en la escena y que la vista este apuntando hacia ellos.
 
-### 4. Agregar un cubo visual
+### 4. Agrega lo que quieras
 
-Crea un cubo desde:
+Crea lo que quieras desde:
 
 ```text
-Create > Shape > Cube
+Create > Shape > elije
 ```
 
-Presiona `Play`. El cubo no deberia caer todavia. Esto es normal: un cubo creado como geometria visual no tiene masa, cuerpo rigido ni colision configurada automaticamente.
+Presiona `Play`. lo que creaste no deberia caer todavia. Esto es normal: algo creado como geometria visual no tiene masa, cuerpo rigido ni colision configurada automaticamente.
 
 ### 5. Mover, rotar y escalar el cubo
 
@@ -100,7 +79,7 @@ Tambien puedes cambiar valores exactos desde el panel de propiedades. Eso es uti
 
 Para que el cubo responda a la gravedad y choque con el suelo:
 
-1. Selecciona el cubo en el Stage, normalmente `/World/Cube`.
+1. Selecciona el cubo en el Stage, normalmente `/World/lo_que_crearon`.
 2. En el panel de propiedades, busca `Add`.
 3. En las opciones de fisica, agrega un preset de cuerpo rigido con colisionadores.
 4. Presiona `Play`.
@@ -202,18 +181,9 @@ Isaac Sim tambien incluye scripts que se ejecutan desde terminal usando el Pytho
 
 Desde la raiz de Isaac Sim:
 
-Linux:
-
 ```bash
 ./python.sh standalone_examples/tutorials/getting_started.py
 ```
-
-Windows:
-
-```bat
-python.bat standalone_examples\tutorials\getting_started.py
-```
-
 Este script crea una escena similar usando Python fuera del Script Editor. La ventaja de este flujo es que se parece mas a un proyecto automatizado: puedes versionar scripts, repetir experimentos y conectar tu simulacion con herramientas externas.
 
 ## Comparacion rapida de workflows
@@ -224,35 +194,3 @@ Este script crea una escena similar usando Python fuera del Script Editor. La ve
 | Script Editor | Pruebas rapidas con Python dentro de Isaac Sim | Iteracion rapida sin cerrar el simulador |
 | Standalone Python | Automatizacion, experimentos repetibles y proyectos | Mejor para pipelines y codigo versionado |
 
-## Errores comunes
-
-- El cubo no cae: probablemente no tiene cuerpo rigido o colisionadores.
-- La escena se ve oscura: falta una luz o la camara no esta apuntando al objeto.
-- El script no encuentra modulos de Isaac Sim: usa el `python.sh` o `python.bat` de Isaac Sim, no el Python global del sistema.
-- No encuentras un objeto por ruta: revisa el Stage y confirma el `prim_path`, por ejemplo `/World/Cube`.
-- El primer arranque tarda demasiado: en una instalacion nueva puede demorar bastante mientras carga recursos y compila caches.
-
-## Checklist de aprendizaje
-
-Antes de pasar al siguiente tutorial, intenta lograr esto sin mirar los pasos:
-
-- Crear una escena nueva.
-- Agregar un plano y una luz.
-- Crear un cubo visual.
-- Hacer que un cubo caiga por gravedad.
-- Mover un objeto con `W`, rotarlo con `E` y escalarlo con `R`.
-- Ejecutar al menos un bloque de Python desde Script Editor.
-- Correr el ejemplo standalone desde terminal.
-
-## Mini ejercicio
-
-Crea una escena con dos cubos:
-
-- Un cubo amarillo sin fisica, ubicado a la izquierda.
-- Un cubo rojo con fisica, ubicado a la derecha y un poco elevado.
-
-Ejecuta la simulacion y verifica que solo el cubo con fisica caiga. Luego modifica la posicion del cubo rojo desde Python y repite la simulacion.
-
-## Siguiente paso
-
-El siguiente tutorial recomendado es crear o cargar un robot basico y observar como se organiza dentro del Stage. A partir de ahi podemos conectar el flujo con URDF, ROS 2 y sensores.
