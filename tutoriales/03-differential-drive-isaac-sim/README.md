@@ -15,7 +15,7 @@ La idea central es:
 
 ## Archivos de apoyo
 
-El script de joystick queda organizado en la misma carpeta del tutorial:
+El script de joystick se puede encontrar en los archivos del tutorial
 
 ```text
 tutoriales/03-differential-drive-isaac-sim/turtlebot_joy_combined.py
@@ -23,22 +23,15 @@ tutoriales/03-differential-drive-isaac-sim/turtlebot_joy_combined.py
 
 Este script publica mensajes `Twist` en `/cmd_vel` usando un joystick detectado con `pygame`.
 
-## Requisitos
-
-- Tener ROS2 instalado y con el entorno cargado antes de abrir Isaac Sim.
-- Tener habilitada la extension de ROS2 Bridge en Isaac Sim.
-- Tener un TurtleBot3 importado como USD desde URDF.
-- Revisar que el robot tenga joints de ruedas manejables.
-- Confirmar que Isaac Sim y ROS2 usan el mismo `ROS_DOMAIN_ID`.
 
 ## Parte 1: Preparar la escena
 
 1. Abre Isaac Sim.
-2. Carga la escena donde esta el TurtleBot3.
+2. Carga la escena del ultimo tutorial.
 3. Verifica que el robot este sobre el piso y no atravesando la geometria.
 4. Presiona `Play` brevemente para confirmar que la simulacion no explota ni lanza errores de fisica.
 
-Si el robot no se mueve despues, primero revisa el `Articulation Root`. En TurtleBot3 suele ser mas facil dejar el root en el prim principal del robot.
+
 
 ## Parte 2: Crear el Action Graph
 
@@ -53,13 +46,14 @@ Crea un Action Graph nuevo y agrega estos nodos:
 - `On Playback Tick`
 - `ROS2 Context`
 - `ROS2 Subscribe Twist`
-- `Break 3-Vector`
+- `2 Break 3-Vector`
 - `Scale To/From Stage Unit`
 - `Differential Controller`
 - `Articulation Controller`
 - `Constant Token` para `wheel_left_joint`
 - `Constant Token` para `wheel_right_joint`
 - `Make Array`
+
 
 ## Parte 3: Configurar ROS2 Subscribe Twist
 
@@ -69,7 +63,7 @@ Selecciona el nodo `ROS2 Subscribe Twist` y configura:
 topicName = /cmd_vel
 ```
 
-Conecta el contexto ROS2 si estas usando el nodo `ROS2 Context`.
+Conecta el contexto ROS2.
 
 ## Parte 4: Conectar velocidades
 
@@ -93,13 +87,14 @@ Para TurtleBot3 Burger puedes empezar con estos valores:
 | Wheel Distance | `0.16` |
 | Wheel Radius | `0.025` |
 
-Estos valores pueden cambiar si usas otro robot o si el modelo fue escalado.
 
 ## Parte 6: Configurar Articulation Controller
+En esta version del turtlebot hay que revisar el `Articulation Root`. En TurtleBot3 suele ser mas facil dejar el root en el prim principal del robot. 
+Por lo que el paso 0 es cambiar el Articulation Root de a_namespace_base_footprint eliminando el api de articulation root y agregandoselo al prim principal turtlebot3_burguer dando click derecho ADD > Physics > Articulation root 
 
 En el nodo `Articulation Controller`:
 
-1. Agrega como target el prim principal del TurtleBot3.
+1. Agrega como target el prim principal (turtlebot3_burguer) del TurtleBot3.
 2. Verifica que ese prim tenga el `Articulation Root`.
 3. Crea un array de joints con `Make Array`.
 4. Usa tokens, no strings, para los nombres:
@@ -110,10 +105,17 @@ wheel_right_joint
 ```
 
 Conecta la salida de velocidades del `Differential Controller` a `Velocity Commands` del `Articulation Controller`.
+Ejemplo del control 
+<img width="1085" height="710" alt="image" src="https://github.com/user-attachments/assets/360f13be-254b-4460-8c37-1a9c52ac5f65" />
 
 ## Parte 7: Probar desde ROS2
+Siempre que se abra una nueva consola hay que hacer 
 
-Con la simulacion en `Play`, abre una terminal con ROS2 cargado y revisa:
+```bash
+source /opt/ros/jazzy/setup.bash
+```
+
+Con la simulacion en `Play`, revisa:
 
 ```bash
 ros2 topic list
@@ -139,12 +141,6 @@ ros2 topic pub /cmd_vel geometry_msgs/Twist "{linear: {x: 0.0, y: 0.0, z: 0.0}, 
 
 ## Parte 8: Probar con joystick
 
-Instala dependencias en tu entorno ROS2:
-
-```bash
-pip install pygame
-```
-
 Ejecuta el script:
 
 ```bash
@@ -165,10 +161,6 @@ linear_axis = -self.joystick.get_axis(1)
 angular_axis = self.joystick.get_axis(3)
 ```
 
-## Errores comunes
+## Generalizar 
+Se puede guardar el action Graph para cargarlo en otro entorno y solo cambiar los parametros especificos de cada robot.
 
-- El robot no se mueve: revisa que el `Articulation Controller` apunte al prim correcto.
-- Las ruedas giran al reves: intercambia los joints o cambia el signo de la velocidad.
-- `/cmd_vel` no aparece: revisa que ROS2 Bridge este habilitado y que Isaac Sim se haya abierto desde una terminal con ROS2 cargado.
-- Isaac Sim y ROS2 no se ven: revisa que ambos usen el mismo `ROS_DOMAIN_ID`.
-- El robot salta o se cae: revisa colisiones, masa, posicion inicial y que no este atravesando el piso.
