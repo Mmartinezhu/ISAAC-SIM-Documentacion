@@ -1,6 +1,6 @@
 # ISAAC-SIM-Documentacion
 
-Documentacion en espanol para estudiar y practicar NVIDIA Isaac Sim.
+Documentacion en español para el semillero de instrumentacion avanzada de la Universidad Nacional de Colombia.
 
 ## Tutoriales
 
@@ -8,6 +8,4 @@ Documentacion en espanol para estudiar y practicar NVIDIA Isaac Sim.
 2. [TurtleBot3 Burger, Lidar y Occupancy Map](tutoriales/02-importar-turtlebot3-lidar-occupancy-map/README.md)
 3. [Differential Drive en Isaac Sim - ROS2 Twist Control con Action Graph](tutoriales/03-differential-drive-isaac-sim/README.md)
 
-## Enfoque
 
-Estos apuntes estan escritos como guias de estudio en espanol. Cuando un tutorial se basa en documentacion oficial, se incluye la fuente original para poder verificar detalles, versiones y cambios.
