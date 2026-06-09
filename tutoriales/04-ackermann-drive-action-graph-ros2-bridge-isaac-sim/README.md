@@ -6,56 +6,27 @@ Fuente oficial de referencia: [ROS 2 Ackermann Controller, NVIDIA Isaac Sim 5.1.
 
 El objetivo de esta parte es controlar un robot con direccion Ackermann en Isaac Sim usando ROS2 Bridge y un Action Graph.
 
-La idea central es:
+El flujo va a ser:
 
 - ROS2 publica comandos `ackermann_msgs/msg/AckermannDriveStamped`.
 - Isaac Sim recibe el topico con un nodo `ROS2 Subscribe AckermannDrive`.
 - Un `Ackermann Controller` calcula angulos de direccion y velocidades de rueda.
 - Dos `Articulation Controller` aplican esos comandos a los joints del robot: uno para direccion y otro para traccion.
 
-## Requisitos
-
-- Tener ROS2 instalado y con el entorno cargado antes de abrir Isaac Sim.
-- Tener habilitada la extension de ROS2 Bridge en Isaac Sim.
-- Tener instalado el paquete `ackermann_msgs`.
-- Tener disponibles los paquetes `isaac_tutorials` y `cmdvel_to_ackermann` si vas a usar los nodos de prueba oficiales.
-- Confirmar que Isaac Sim y ROS2 usan el mismo `ROS_DOMAIN_ID`.
-- Tener una escena con un robot compatible con direccion Ackermann, por ejemplo Leatherback.
-
-Para instalar `ackermann_msgs`:
-
-```bash
-sudo apt install ros-$ROS_DISTRO-ackermann-msgs
-```
-
-Los paquetes `isaac_tutorials` y `cmdvel_to_ackermann` vienen del workspace oficial `IsaacSim-ros_workspaces`.
 
 ## Parte 1: Preparar la escena
 
-1. Abre Isaac Sim desde una terminal donde ya tengas cargado ROS2.
-2. Crea una escena nueva.
-3. Agrega un piso con:
-
-```text
-Create > Environments > Flat Grid
-```
-
+1. Abre Isaac Sim.
+2. Crea y prepara una escena nueva, en Window > Browser > Isaac Sim assets. Hay diferentes Assets que pueden ayuda a tener una escena mas personalizada, por ejemplo importando jettracer_track_solid.
 4. En el `Content Browser`, busca:
 
 ```text
-Isaac Sim > ROBOTS > NVIDIA > Leatherback
+Isaac Sim Assets > ROBOTS > NVIDIA > Leatherback
 ```
 
-5. Arrastra `leatherback.usd` al `Stage`.
-6. Selecciona el prim del robot y deja su `Translate` en `0, 0, 0`.
-7. Presiona `Play` brevemente para confirmar que el robot queda estable sobre el piso.
+5. Arrastra `leatherback.usd` al `Stage` y verifica que no esta en contacto con el piso.
+6. Presiona `Play` brevemente para confirmar que el robot queda estable sobre el piso.
 
-Si quieres partir desde una escena ya configurada por NVIDIA, revisa estas rutas en el `Content Browser`:
-
-```text
-Isaac Sim > Sample > ROS2 > Robots > Leatherback_ROS
-Isaac Sim > Sample > ROS2 > Scenario > leatherback_ackermann
-```
 
 ## Parte 2: Crear el Action Graph
 
@@ -98,20 +69,16 @@ Conecta las senales principales asi:
 | `Ackermann Controller.wheelAngles` | `Articulation Controller.positionCommand` |
 | `Ackermann Controller.wheelRotationVelocity` | `Articulation Controller_01.velocityCommand` |
 
-Si el nodo muestra los puertos como `Position Commands` o `Velocity Commands`, usa esos puertos equivalentes.
+El action graph deberia quedar como la siguiente imagen: 
+<img width="1184" height="534" alt="image" src="https://github.com/user-attachments/assets/859be362-294f-406c-9e72-cb3b9a4f6c6e" />
+
 
 ## Parte 3: Configurar ROS2 Subscribe AckermannDrive
 
-Selecciona el nodo `ROS2 Subscribe AckermannDrive` y configura:
+Selecciona el nodo `ROS2 Subscribe AckermannDrive` y configura (normalmente ya tendra ese nombre):
 
 ```text
 topicName = ackermann_cmd
-```
-
-En ROS2 normalmente lo veras como:
-
-```text
-/ackermann_cmd
 ```
 
 El mensaje recibido es:
@@ -120,7 +87,7 @@ El mensaje recibido es:
 ackermann_msgs/msg/AckermannDriveStamped
 ```
 
-El subscriber entrega estos campos importantes al grafo:
+El subscriber entrega estos datos al grafo:
 
 - `speed`: velocidad hacia adelante en `m/s`.
 - `acceleration`: aceleracion en `m/s^2`.
@@ -253,7 +220,7 @@ Tambien puedes usar el publisher oficial del paquete `isaac_tutorials`:
 ros2 run isaac_tutorials ros2_ackermann_publisher.py
 ```
 
-## Parte 7: Controlar con Twist y teclado
+## Parte 7: Controlar con Twist y teclado ( o control)
 
 El tutorial oficial tambien muestra una forma de controlar Leatherback desde comandos `Twist`.
 
@@ -291,12 +258,8 @@ Controles basicos:
 - `.`: atras derecha.
 - `k`: detener.
 
-## Errores comunes
+Tambien esta la opcion de utilizar un joystick, corriendo el script de python que esta en la carpeta del tutorial con el nombre de teleop_arckerman. 
+```bash
+python3 teleop_ackerman.py
+```
 
-- El robot no se mueve: revisa que el `Articulation Controller` apunte al prim correcto.
-- Los joints no responden: revisa los nombres de los joints de direccion y traccion.
-- El topico no aparece: revisa que ROS2 Bridge este habilitado y que Isaac Sim se haya abierto desde una terminal con ROS2 cargado.
-- Isaac Sim y ROS2 no se ven: revisa que ambos usen el mismo `ROS_DOMAIN_ID`.
-- El robot gira al lado contrario: cambia el signo de `steeringAngle` o revisa `invertSteering`.
-- La direccion se mueve pero el robot no avanza: revisa que `wheelRotationVelocity` este conectado a `Velocity Commands` del controlador de ruedas.
-- El robot avanza pero no gira: revisa que `wheelAngles` este conectado a `Position Commands` del controlador de direccion.
