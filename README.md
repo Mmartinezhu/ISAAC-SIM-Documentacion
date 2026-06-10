@@ -11,4 +11,5 @@ Documentacion en español para el semillero de instrumentacion avanzada de la Un
 5. [Camera Sensor en Carter v1 - Action Graph + ROS2 Bridge](tutoriales/05-camera-sensor-action-graph-ros2-bridge-isaac-sim/README.md)
 6. [IMU Sensor in Isaac Sim - Action Graph + ROS2 Bridge](tutoriales/06-imu-sensor-action-graph-ros2-bridge-isaac-sim/README.md)
 7. [2D LiDAR Sensor in Isaac Sim - Action Graph + ROS2 Bridge](tutoriales/07-2d-lidar-sensor-action-graph-ros2-bridge-isaac-sim/README.md)
+8. [3D LiDAR Sensor in Isaac Sim - Action Graph + ROS2 Bridge](tutoriales/08-3d-lidar-sensor-action-graph-ros2-bridge-isaac-sim/README.md)
 
