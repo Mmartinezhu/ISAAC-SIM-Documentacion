@@ -65,20 +65,12 @@ odom -> base_link -> sensores
 
 La odometria no reemplaza localizacion global. En un robot real, paquetes como SLAM, AMCL o filtros de estado suelen publicar `map -> odom`.
 
-## Parte 3: Crear el Action Graph
-
-Abre:
-
-```text
-Window > Graph Editors > Action Graph
-```
-
-vamos a  usar los asistentes:
+## Parte 3: Utilizar los asistentes disponibles.
 
 ```text
 Tools > Robotics > ROS 2 OmniGraphs > Odometry Publisher
 ``
-Seleccionamos el articulation root
+Seleccionamos el articulation root   /carter
 y en chasis link Prim seleccionamos /base_link
 
 
