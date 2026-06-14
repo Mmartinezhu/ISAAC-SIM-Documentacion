@@ -34,17 +34,15 @@ Robots/NVIDIA/Carter/carter_v1.usd
 Para este tutorial se usara esta jerarquia de ejemplo:
 
 ```text
-/World/Carter/chassis_link
+/World/Carter/com_offset/imu
 ```
-
-Si tu asset usa `Chassis_link` u otro nombre, usa el nombre exacto que aparezca en el `Stage`.
 
 ## Parte 2: Crear y montar el IMU en Carter
 
 Selecciona el link del chasis:
 
 ```text
-/World/Carter/chassis_link
+/World/Carter/com_offset/imu
 ```
 
 Crea el sensor desde el menu:
@@ -65,7 +63,7 @@ La jerarquia debe quedar parecida a:
 /World/Carter/chassis_link/IMU_Sensor
 ```
 
-En general, los sensores IMU deben agregarse sobre prims que sean rigid bodies o hijos de un rigid body. Por eso se recomienda montarlo en `chassis_link`.
+En general, los sensores IMU deben agregarse sobre prims que sean rigid bodies o hijos de un rigid body. Por eso se recomienda montarlo en `/World/Carter/com_offset/imu`.
 
 Configura una pose local simple:
 
@@ -113,20 +111,27 @@ Crea un Action Graph nuevo y agrega estos nodos:
 - `On Playback Tick`
 - `ROS2 Context`
 - `Isaac Read Simulation Time`
-- `Isaac Read IMU`
+- `Isaac Read IMU Node`
 - `ROS2 Publish Imu`
+- `ROS2 QoS Profile`
 
 Conecta las senales asi:
 
 | Salida | Entrada |
 | --- | --- |
 | `On Playback Tick.tick` | `Isaac Read IMU.execIn` |
-| `Isaac Read IMU.execOut` | `ROS2 Publish Imu.execIn` |
-| `Isaac Read IMU.orientation` | `ROS2 Publish Imu.orientation` |
-| `Isaac Read IMU.angularVelocity` | `ROS2 Publish Imu.angularVelocity` |
-| `Isaac Read IMU.linearAcceleration` | `ROS2 Publish Imu.linearAcceleration` |
+| `Isaac Read IMU Node.execOut` | `ROS2 Publish Imu.execIn` |
+| `Isaac Read IMU Node.orientation` | `ROS2 Publish Imu.orientation` |
+| `Isaac Read IMU Node.angularVelocity` | `ROS2 Publish Imu.angularVelocity` |
+| `Isaac Read IMU Node.linearAcceleration` | `ROS2 Publish Imu.linearAcceleration` |
 | `Isaac Read Simulation Time.simulationTime` | `ROS2 Publish Imu.timeStamp` |
 | `ROS2 Context.context` | `ROS2 Publish Imu.context` |
+| `ROS2 QoS Profile.QoS Profile  ` | `ROS2 Publish Imu.QoS Profile` |
+
+El Action Graph queda asi: 
+<img width="948" height="627" alt="image" src="https://github.com/user-attachments/assets/4dffa82f-3407-41ec-851c-751eb1d935f0" />
+
+
 
 El flujo completo queda:
 
@@ -142,7 +147,7 @@ Selecciona el nodo `Isaac Read IMU` y configura:
 
 | Campo | Valor |
 | --- | --- |
-| `imuPrim` | `/World/Carter/chassis_link/IMU_Sensor` |
+| `imuPrim` | `/World/Carter/com_offset/imu` |
 | `readGravity` | `True` |
 
 `readGravity = True` hace que la aceleracion lineal incluya el efecto de la gravedad, similar a lo que esperarias de una IMU real. Si quieres analizar solo aceleraciones de movimiento, prueba tambien con `False`.
@@ -154,8 +159,6 @@ Selecciona el nodo `ROS2 Publish Imu` y configura:
 | Campo | Valor |
 | --- | --- |
 | `topicName` | `imu` |
-| `nodeNamespace` | `carter` |
-| `frameId` | `carter_imu_link` |
 | `queueSize` | `10` |
 | `publishOrientation` | `True` |
 | `publishAngularVelocity` | `True` |
@@ -164,7 +167,7 @@ Selecciona el nodo `ROS2 Publish Imu` y configura:
 Con esta configuracion, el topico queda:
 
 ```text
-/carter/imu
+/imu
 ```
 
 El tipo de mensaje es:
@@ -184,25 +187,25 @@ ros2 topic list
 Debe aparecer:
 
 ```text
-/carter/imu
+/imu
 ```
 
 Revisa el tipo del topico:
 
 ```bash
-ros2 topic info /carter/imu
+ros2 topic info /imu
 ```
 
 Revisa la frecuencia:
 
 ```bash
-ros2 topic hz /carter/imu
+ros2 topic hz /imu
 ```
 
 Imprime un mensaje:
 
 ```bash
-ros2 topic echo /carter/imu --once
+ros2 topic echo /imu --once
 ```
 
 Mueve Carter y revisa que cambien:
@@ -222,16 +225,6 @@ rviz2
 Para una prueba rapida:
 
 1. En `Displays`, agrega `By topic`.
-2. Selecciona `/carter/imu`.
+2. Selecciona `/imu`.
 3. Si RViz2 no muestra el IMU por falta de TF, valida primero con `ros2 topic echo`.
 
-El mensaje IMU usa `frameId = carter_imu_link`, pero ese frame no aparece automaticamente en `/tf`. El tutorial de odometria y TF agrega ese arbol de transforms.
-
-## Errores comunes
-
-- No aparece `/carter/imu`: revisa que ROS2 Bridge este habilitado y que la simulacion este en `Play`.
-- El topico aparece pero no cambia: revisa que `On Playback Tick` este conectado.
-- Las lecturas son cero: revisa que `imuPrim` apunte al prim correcto.
-- La aceleracion parece incluir gravedad: cambia `readGravity` segun el comportamiento que necesites.
-- RViz2 no muestra el sensor: revisa `frameId` y publica TF en el siguiente tutorial de odometria.
-- Los ejes parecen invertidos: revisa la rotacion local del prim `IMU_Sensor`.
