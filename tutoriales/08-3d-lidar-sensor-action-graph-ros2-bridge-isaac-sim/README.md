@@ -34,7 +34,7 @@ Robots/NVIDIA/Carter/carter_v1.usd
 Para este tutorial se usara esta jerarquia de ejemplo:
 
 ```text
-/World/Carter/chassis_link
+/World/Carter/chassis_link/camera_mount
 ```
 
 ## Parte 2: Crear y montar el LiDAR 3D
@@ -56,7 +56,7 @@ Arrastra `Lidar_3D` dentro del chasis de Carter o dentro de un mount del chasis.
 La jerarquia debe quedar parecida a:
 
 ```text
-/World/Carter/chassis_link/lidar_3d_mount/Lidar_3D
+/World/Carter/chassis_link/camera_mount/Lidar_3D
 ```
 
 Si no existe `lidar_3d_mount`, puedes dejar el sensor directamente dentro de:
@@ -96,6 +96,7 @@ Para hacerlo a mano, crea un Action Graph nuevo y agrega estos nodos:
 
 - `On Playback Tick`
 - `ROS2 Context`
+- `Isaac Run One Simulation Frame`
 - `Isaac Create Render Product`
 - `ROS2 RTX Lidar Helper`
 
@@ -103,7 +104,8 @@ Conecta las senales asi:
 
 | Salida | Entrada |
 | --- | --- |
-| `On Playback Tick.tick` | `Isaac Create Render Product.execIn` |
+| `On Playback Tick.tick` | `Isaac Run One Simulation Frame.execIn` |
+| `Isaac Run One Simulation Frame.stepOut` | `Isaac Create Render Product.execIn` |
 | `Isaac Create Render Product.execOut` | `ROS2 RTX Lidar Helper.execIn` |
 | `Isaac Create Render Product.renderProductPath` | `ROS2 RTX Lidar Helper.renderProductPath` |
 | `ROS2 Context.context` | `ROS2 RTX Lidar Helper.context` |
@@ -115,6 +117,9 @@ On Playback Tick
   -> Isaac Create Render Product
   -> ROS2 RTX Lidar Helper
 ```
+El action Graph queda algo asi: 
+<img width="1570" height="574" alt="image" src="https://github.com/user-attachments/assets/455402dd-9624-434c-af75-e90fdb7e0c7c" />
+
 
 ## Parte 4: Configurar Isaac Create Render Product
 
@@ -122,7 +127,7 @@ Selecciona el nodo `Isaac Create Render Product` y configura:
 
 | Campo | Valor |
 | --- | --- |
-| `cameraPrim` | `/World/Carter/chassis_link/lidar_3d_mount/Lidar_3D` |
+| `cameraPrim` | `/World/Carter/chassis_link/camera_mount/Lidar_3D` |
 | `enabled` | `True` |
 
 Si tu sensor quedo en otra ruta, usa esa ruta exacta. El campo `cameraPrim` tambien acepta sensores RTX LiDAR.
@@ -134,9 +139,9 @@ Selecciona el nodo `ROS2 RTX Lidar Helper` y configura:
 | Campo | Valor |
 | --- | --- |
 | `type` | `point_cloud` |
-| `topicName` | `points` |
+| `topicName` | `point_cloud` |
 | `nodeNamespace` | `carter/lidar_3d` |
-| `frameId` | `carter_lidar_3d_link` |
+| `frameId` | `sim_lidar` |
 | `queueSize` | `10` |
 | `frameSkipCount` | `0` |
 | `fullScan` | `False` |
@@ -145,7 +150,7 @@ Selecciona el nodo `ROS2 RTX Lidar Helper` y configura:
 Con esta configuracion, el topico queda:
 
 ```text
-/carter/lidar_3d/points
+/point_cloud
 ```
 
 El tipo de mensaje es:
@@ -158,7 +163,7 @@ Notas:
 
 - `fullScan = False` publica puntos parciales con menor latencia.
 - `fullScan = True` espera a acumular un escaneo completo antes de publicar.
-- Si la nube es pesada, sube `frameSkipCount` para publicar menos frecuente.
+
 
 ## Parte 6: Probar desde ROS2
 
@@ -171,25 +176,25 @@ ros2 topic list
 Debe aparecer:
 
 ```text
-/carter/lidar_3d/points
+/point_cloud
 ```
 
 Revisa el tipo:
 
 ```bash
-ros2 topic info /carter/lidar_3d/points
+ros2 topic info /point_cloud
 ```
 
 Revisa la frecuencia:
 
 ```bash
-ros2 topic hz /carter/lidar_3d/points
+ros2 topic hz /point_cloud
 ```
 
 Imprime un mensaje para confirmar que hay datos:
 
 ```bash
-ros2 topic echo /carter/lidar_3d/points --once
+ros2 topic echo /point_cloud --once
 ```
 
 ## Parte 7: Visualizar en RViz2
@@ -202,19 +207,11 @@ rviz2
 
 En RViz2:
 
-1. En `Fixed Frame`, prueba primero con `carter_lidar_3d_link`.
+1. En `Fixed Frame`, prueba primero con `sim_lidar`.
 2. En `Displays`, oprime `Add`.
 3. Selecciona `By topic`.
-4. Agrega `/carter/lidar_3d/points` como `PointCloud2`.
-5. Ajusta `Size (m)` si los puntos se ven muy pequenos.
+4. Agrega `/point_cloud` como `PointCloud2`.
+5. Ajusta `Size (m)` a 0.1  si los puntos se ven muy pequenos.
 
 Si ya tienes TF publicado para Carter, puedes usar `base_link` u `odom` como `Fixed Frame`.
 
-## Errores comunes
-
-- No aparece `/carter/lidar_3d/points`: revisa ROS2 Bridge y que la simulacion este en `Play`.
-- El topico aparece pero RViz2 no muestra puntos: revisa `Fixed Frame` y prueba `carter_lidar_3d_link`.
-- La nube sale vacia: revisa que el LiDAR no este dentro de la geometria del robot.
-- La nube es muy pesada: aumenta `frameSkipCount` o baja la complejidad del entorno.
-- El sensor no sigue a Carter: confirma que `Lidar_3D` sea hijo de `chassis_link`.
-- RViz2 se vuelve lento: desactiva otros displays y baja el tamano visual de los puntos.
