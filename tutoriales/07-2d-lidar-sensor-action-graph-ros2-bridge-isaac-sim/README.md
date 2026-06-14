@@ -34,10 +34,8 @@ Robots/NVIDIA/Carter/carter_v1.usd
 Para este tutorial se usara esta jerarquia de ejemplo:
 
 ```text
-/World/Carter/chassis_link
+/World/Carter/chassis_link/camera_mount/XT_32_10hz 
 ```
-
-Si tu asset usa `Chassis_link` u otro nombre, usa el nombre exacto que aparezca en el `Stage`.
 
 ## Parte 2: Crear y montar el LiDAR 2D
 
@@ -58,13 +56,7 @@ Arrastra `Lidar_2D` dentro del chasis de Carter o dentro de un mount del chasis.
 La jerarquia debe quedar parecida a:
 
 ```text
-/World/Carter/chassis_link/lidar_2d_mount/Lidar_2D
-```
-
-Si no existe `lidar_2d_mount`, puedes dejar el sensor directamente dentro de:
-
-```text
-/World/Carter/chassis_link/Lidar_2D
+/World/Carter/chassis_link/camera_mount/XT_32_10hz /Lidar_2D
 ```
 
 Configura una pose local inicial:
@@ -98,17 +90,30 @@ Para hacerlo a mano, crea un Action Graph nuevo y agrega estos nodos:
 
 - `On Playback Tick`
 - `ROS2 Context`
-- `Isaac Create Render Product`
-- `ROS2 RTX Lidar Helper`
+- `Isaac Read Simulation Time`
+- `Isaac Read Lidar Beams Node`
+- `ROS2 Publish Laser Scan`
 
 Conecta las senales asi:
 
 | Salida | Entrada |
 | --- | --- |
-| `On Playback Tick.tick` | `Isaac Create Render Product.execIn` |
-| `Isaac Create Render Product.execOut` | `ROS2 RTX Lidar Helper.execIn` |
-| `Isaac Create Render Product.renderProductPath` | `ROS2 RTX Lidar Helper.renderProductPath` |
-| `ROS2 Context.context` | `ROS2 RTX Lidar Helper.context` |
+| Origen                                             | Destino                                        |
+| -------------------------------------------------- | ---------------------------------------------- |
+| `On Playback Tick.tick`                            | `Isaac Read Lidar Beams Node.execIn`           |
+| `Isaac Read Lidar Beams Node.execOut`              | `ROS2 Publish Laser Scan.execIn`               |
+| `ROS2 Context.context`                             | `ROS2 Publish Laser Scan.context`              |
+| `Isaac Read Simulation Time.simulationTime`        | `ROS2 Publish Laser Scan.timestamp`            |
+| `Isaac Read Lidar Beams Node.azimuthRange`         | `ROS2 Publish Laser Scan.azimuthRange`         |
+| `Isaac Read Lidar Beams Node.depthRange`           | `ROS2 Publish Laser Scan.depthRange`           |
+| `Isaac Read Lidar Beams Node.horizontalFov`        | `ROS2 Publish Laser Scan.horizontalFov`        |
+| `Isaac Read Lidar Beams Node.horizontalResolution` | `ROS2 Publish Laser Scan.horizontalResolution` |
+| `Isaac Read Lidar Beams Node.intensities`          | `ROS2 Publish Laser Scan.intensitiesData`      |
+| `Isaac Read Lidar Beams Node.linearDepthData`      | `ROS2 Publish Laser Scan.linearDepthData`      |
+| `Isaac Read Lidar Beams Node.numCols`              | `ROS2 Publish Laser Scan.numCols`              |
+| `Isaac Read Lidar Beams Node.numRows`              | `ROS2 Publish Laser Scan.numRows`              |
+| `Isaac Read Lidar Beams Node.rotationRate`         | `ROS2 Publish Laser Scan.rotationRate`         |
+
 
 El flujo completo queda:
 
@@ -117,6 +122,8 @@ On Playback Tick
   -> Isaac Create Render Product
   -> ROS2 RTX Lidar Helper
 ```
+El Action Graph queda algo asi: 
+<img width="891" height="557" alt="image" src="https://github.com/user-attachments/assets/4f727b3d-a54b-4990-9f67-945c592c7796" />
 
 ## Parte 4: Configurar Isaac Create Render Product
 
@@ -124,21 +131,19 @@ Selecciona el nodo `Isaac Create Render Product` y configura:
 
 | Campo | Valor |
 | --- | --- |
-| `cameraPrim` | `/World/Carter/chassis_link/lidar_2d_mount/Lidar_2D` |
+| `cameraPrim` | `/World/Carter/chassis_link/camera_mount/XT_32_10hz /Lidar_2D` |
 | `enabled` | `True` |
 
 Si tu sensor quedo en otra ruta, usa esa ruta exacta. Aunque el campo se llame `cameraPrim`, tambien se usa para sensores RTX como LiDAR.
 
-## Parte 5: Configurar ROS2 RTX Lidar Helper
+## Parte 5: Ros2 Publish Laser Scan
 
-Selecciona el nodo `ROS2 RTX Lidar Helper` y configura:
+Selecciona el nodo `ROS2 Publish Laser Scan` y configura:
 
 | Campo | Valor |
 | --- | --- |
-| `type` | `laser_scan` |
 | `topicName` | `scan` |
-| `nodeNamespace` | `carter/lidar_2d` |
-| `frameId` | `carter_lidar_2d_link` |
+| `frameId` | `sim_lidar` |
 | `queueSize` | `10` |
 | `frameSkipCount` | `0` |
 | `enabled` | `True` |
@@ -146,7 +151,7 @@ Selecciona el nodo `ROS2 RTX Lidar Helper` y configura:
 Con esta configuracion, el topico queda:
 
 ```text
-/carter/lidar_2d/scan
+/scan
 ```
 
 El tipo de mensaje es:
@@ -168,25 +173,25 @@ ros2 topic list
 Debe aparecer:
 
 ```text
-/carter/lidar_2d/scan
+/scan
 ```
 
 Revisa el tipo:
 
 ```bash
-ros2 topic info /carter/lidar_2d/scan
+/scan
 ```
 
 Revisa la frecuencia:
 
 ```bash
-ros2 topic hz /carter/lidar_2d/scan
+ros2 topic hz /scan
 ```
 
 Imprime un mensaje:
 
 ```bash
-ros2 topic echo /carter/lidar_2d/scan --once
+ros2 topic echo /scan --once
 ```
 
 Mueve Carter o coloca objetos alrededor y revisa que cambien los rangos del `LaserScan`.
@@ -201,18 +206,14 @@ rviz2
 
 En RViz2:
 
-1. En `Fixed Frame`, prueba primero con `carter_lidar_2d_link`.
+1. En `Fixed Frame`, cambialo a  `sim_lidar`.
 2. En `Displays`, oprime `Add`.
 3. Selecciona `By topic`.
-4. Agrega `/carter/lidar_2d/scan` como `LaserScan`.
+4. Agrega `/scan` como `LaserScan`.
+5. En LaserScan cambia Size(m)  a 0.1
 
-Si ya tienes TF publicado para Carter, puedes usar `base_link` u `odom` como `Fixed Frame`. Si todavia no tienes TF, usar el frame del LiDAR permite validar el topico sin configurar el arbol completo de transforms.
+Se deberia ver una pestaña parecida a: 
+<img width="1661" height="733" alt="image" src="https://github.com/user-attachments/assets/145df5c3-0040-47e2-9a1a-ea9a63a421b0" />
 
-## Errores comunes
 
-- No aparece `/carter/lidar_2d/scan`: revisa que ROS2 Bridge este habilitado y que la simulacion este en `Play`.
-- El topico aparece pero no publica: revisa que `Isaac Create Render Product` apunte al prim del LiDAR.
-- RViz2 no muestra el escaneo: revisa `Fixed Frame` y usa `carter_lidar_2d_link` para una primera prueba.
-- El LiDAR no sigue al robot: revisa que `Lidar_2D` sea hijo de `chassis_link`.
-- El escaneo sale vacio: agrega objetos dentro del rango del LiDAR y revisa que el sensor no este dentro de la geometria del robot.
-- La frecuencia es baja: recuerda que `LaserScan` se publica cuando se completa un escaneo completo.
+
