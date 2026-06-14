@@ -73,146 +73,14 @@ Abre:
 Window > Graph Editors > Action Graph
 ```
 
-Tambien puedes usar los asistentes:
+vamos a  usar los asistentes:
 
 ```text
 Tools > Robotics > ROS 2 OmniGraphs > Odometry Publisher
-Tools > Robotics > ROS 2 OmniGraphs > TF Publisher
-```
+``
+Seleccionamos el articulation root
+y en chasis link Prim seleccionamos /base_link
 
-Para hacerlo a mano, crea un Action Graph nuevo y agrega estos nodos:
-
-- `On Playback Tick`
-- `ROS2 Context`
-- `Isaac Read Simulation Time`
-- `Isaac Compute Odometry`
-- `ROS2 Publish Odometry`
-- `ROS2 Publish Raw Transform Tree`
-- `ROS2 Publish Transform Tree`
-
-## Parte 4: Conectar odometria
-
-Conecta las senales asi:
-
-| Salida | Entrada |
-| --- | --- |
-| `On Playback Tick.tick` | `Isaac Compute Odometry.execIn` |
-| `Isaac Compute Odometry.execOut` | `ROS2 Publish Odometry.execIn` |
-| `Isaac Compute Odometry.position` | `ROS2 Publish Odometry.position` |
-| `Isaac Compute Odometry.orientation` | `ROS2 Publish Odometry.orientation` |
-| `Isaac Compute Odometry.linearVelocity` | `ROS2 Publish Odometry.linearVelocity` |
-| `Isaac Compute Odometry.angularVelocity` | `ROS2 Publish Odometry.angularVelocity` |
-| `Isaac Read Simulation Time.simulationTime` | `ROS2 Publish Odometry.timeStamp` |
-| `ROS2 Context.context` | `ROS2 Publish Odometry.context` |
-
-Configura `Isaac Compute Odometry`:
-
-| Campo | Valor |
-| --- | --- |
-| `chassisPrim` | `/World/Carter` |
-
-Configura `ROS2 Publish Odometry`:
-
-| Campo | Valor |
-| --- | --- |
-| `topicName` | `odom` |
-| `nodeNamespace` | `carter` |
-| `odomFrameId` | `odom` |
-| `chassisFrameId` | `base_link` |
-| `robotFront` | `1.0, 0.0, 0.0` |
-| `queueSize` | `10` |
-
-Con esta configuracion, el topico queda:
-
-```text
-/carter/odom
-```
-
-El tipo de mensaje es:
-
-```text
-nav_msgs/msg/Odometry
-```
-
-## Parte 5: Publicar odom -> base_link
-
-Agrega y configura `ROS2 Publish Raw Transform Tree`.
-
-Conecta:
-
-| Salida | Entrada |
-| --- | --- |
-| `On Playback Tick.tick` | `ROS2 Publish Raw Transform Tree.execIn` |
-| `Isaac Compute Odometry.position` | `ROS2 Publish Raw Transform Tree.translation` |
-| `Isaac Compute Odometry.orientation` | `ROS2 Publish Raw Transform Tree.rotation` |
-| `Isaac Read Simulation Time.simulationTime` | `ROS2 Publish Raw Transform Tree.timeStamp` |
-| `ROS2 Context.context` | `ROS2 Publish Raw Transform Tree.context` |
-
-Configura el nodo:
-
-| Campo | Valor |
-| --- | --- |
-| `topicName` | `tf` |
-| `parentFrameId` | `odom` |
-| `childFrameId` | `base_link` |
-| `queueSize` | `10` |
-
-No agregues `nodeNamespace` a los publishers de TF si quieres publicar en el topico estandar:
-
-```text
-/tf
-```
-
-## Parte 6: Publicar transforms de sensores
-
-Agrega un nodo `ROS2 Publish Transform Tree`.
-
-Conecta:
-
-| Salida | Entrada |
-| --- | --- |
-| `On Playback Tick.tick` | `ROS2 Publish Transform Tree.execIn` |
-| `Isaac Read Simulation Time.simulationTime` | `ROS2 Publish Transform Tree.timeStamp` |
-| `ROS2 Context.context` | `ROS2 Publish Transform Tree.context` |
-
-Configura:
-
-| Campo | Valor |
-| --- | --- |
-| `topicName` | `tf` |
-| `parentPrim` | `/World/Carter/chassis_link` |
-| `targetPrims` | sensores montados en el chasis |
-| `staticPublisher` | `True` |
-| `queueSize` | `10` |
-
-Ejemplos de `targetPrims`:
-
-```text
-/World/Carter/chassis_link/camera_mount/RGB_Sensor
-/World/Carter/chassis_link/IMU_Sensor
-/World/Carter/chassis_link/lidar_2d_mount/Lidar_2D
-/World/Carter/chassis_link/lidar_3d_mount/Lidar_3D
-```
-
-Si alguno de esos sensores no existe en tu escena, no lo agregues al arreglo.
-
-`staticPublisher = True` es adecuado para sensores fijos al chasis. Si el sensor se mueve con un joint o mecanismo, usa `False`.
-
-## Parte 7: Publicar world -> odom opcional
-
-Si quieres que RViz2 tenga un frame global `world`, agrega otro `ROS2 Publish Raw Transform Tree`.
-
-Configura:
-
-| Campo | Valor |
-| --- | --- |
-| `topicName` | `tf_static` |
-| `parentFrameId` | `world` |
-| `childFrameId` | `odom` |
-| `translation` | `0.0, 0.0, 0.0` |
-| `rotation` | `0.0, 0.0, 0.0, 1.0` |
-
-Este transform representa que el frame `odom` inicia alineado con `world`.
 
 ## Parte 8: Probar desde ROS2
 
@@ -226,15 +94,14 @@ Deben aparecer:
 
 ```text
 /tf
-/tf_static
-/carter/odom
+/odom
 ```
 
 Revisa la odometria:
 
 ```bash
-ros2 topic info /carter/odom
-ros2 topic echo /carter/odom --once
+ros2 topic info /odom
+ros2 topic echo /odom --once
 ```
 
 Revisa TF:
@@ -250,12 +117,6 @@ Genera un reporte de frames:
 ros2 run tf2_tools view_frames
 ```
 
-Esto genera un PDF con el arbol TF publicado. Instala la herramienta si no esta disponible:
-
-```bash
-sudo apt install ros-$ROS_DISTRO-tf2-tools
-```
-
 ## Parte 9: Visualizar en RViz2
 
 Abre RViz2:
@@ -266,17 +127,11 @@ rviz2
 
 Configuracion recomendada:
 
-1. En `Fixed Frame`, usa `odom`.
+1. En `Fixed Frame`, usa `base_link`.
 2. Agrega un display `TF`.
 3. Agrega un display `Odometry`.
-4. En el display `Odometry`, selecciona `/carter/odom`.
-5. Si tienes LiDAR, agrega `/carter/lidar_2d/scan` o `/carter/lidar_3d/points`.
+4. En el display `Odometry`, selecciona `/odom`.
 
-Mueve Carter y revisa:
-
-- El frame `base_link` debe moverse bajo `odom`.
-- Los frames de sensores deben mantenerse fijos respecto a `base_link`.
-- La odometria debe cambiar mientras el robot se desplaza.
 
 ## Parte 10: Ver TF dentro de Isaac Sim
 
@@ -296,12 +151,3 @@ Window > TF Viewer
 
 Con la simulacion en `Play`, selecciona el frame raiz, por ejemplo `world` u `odom`, y revisa que aparezcan los frames publicados.
 
-## Errores comunes
-
-- `/carter/odom` no aparece: revisa que `ROS2 Publish Odometry` tenga `execIn`, `context` y `timeStamp`.
-- `/tf` no aparece: revisa que `ROS2 Publish Raw Transform Tree` este conectado al tick.
-- RViz2 no muestra frames: usa `odom` como `Fixed Frame` y revisa `ros2 topic echo /tf --once`.
-- El arbol TF queda separado: revisa que `childFrameId = base_link` coincida con el frame usado por sensores.
-- La odometria no cambia: revisa que `chassisPrim` apunte al prim correcto de Carter.
-- Los sensores no aparecen bajo `base_link`: revisa `parentPrim` y `targetPrims` en `ROS2 Publish Transform Tree`.
-- Aparecen nombres de frames inesperados: revisa los nombres de prims o usa atributos `NameOverride` si necesitas nombres ROS2 especificos.
