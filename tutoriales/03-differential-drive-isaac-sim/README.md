@@ -26,7 +26,12 @@ Este script publica mensajes `Twist` en `/cmd_vel` usando un joystick detectado 
 
 ## Parte 1: Preparar la escena
 
-1. Abre Isaac Sim.
+1. Abre Isaac Sim con:
+
+   ```bash
+   talos@IsaacUN:~/isaac-sim$ ./launch_isaacsim.bash
+   ```
+
 2. Carga la escena del ultimo tutorial.
 3. Verifica que el robot este sobre el piso y no atravesando la geometria.
 4. Presiona `Play` brevemente para confirmar que la simulacion no explota ni lanza errores de fisica.
@@ -109,13 +114,14 @@ Ejemplo del control
 <img width="1085" height="710" alt="image" src="https://github.com/user-attachments/assets/360f13be-254b-4460-8c37-1a9c52ac5f65" />
 
 ## Parte 7: Probar desde ROS2
-Siempre que se abra una nueva consola hay que hacer 
+
+Antes de ejecutar cualquier comando ROS, abre una terminal ROS con:
 
 ```bash
-source /opt/ros/jazzy/setup.bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
 ```
 
-Con la simulacion en `Play`, revisa:
+Con la simulacion en `Play`, ejecuta los comandos siguientes dentro de esa terminal.
 
 ```bash
 ros2 topic list
@@ -140,6 +146,12 @@ ros2 topic pub /cmd_vel geometry_msgs/Twist "{linear: {x: 0.0, y: 0.0, z: 0.0}, 
 ```
 
 ## Parte 8: Probar con joystick
+
+Para usar el joystick, abre una terminal ROS con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
 
 Ejecuta el script:
 

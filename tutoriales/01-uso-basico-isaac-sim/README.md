@@ -21,13 +21,10 @@ Los tres caminos apuntan al mismo resultado: una escena simple con suelo, luz y 
 
 ### 1. Abrir Isaac Sim
 
-Desde la carpeta de instalacion, abre el App Selector.
-
-Linux:
+En la maquina `IsaacUN`, abre Isaac Sim con:
 
 ```bash
-cd ~/isaacsim
-./isaac-sim.selector.sh
+talos@IsaacUN:~/isaac-sim$ ./launch_isaacsim.bash
 ```
 
 Crea una escena limpia desde `File > New`. 
@@ -182,7 +179,7 @@ Isaac Sim tambien incluye scripts que se ejecutan desde terminal usando el Pytho
 Desde la raiz de Isaac Sim:
 
 ```bash
-./python.sh standalone_examples/tutorials/getting_started.py
+talos@IsaacUN:~/isaac-sim$ ./python.sh standalone_examples/tutorials/getting_started.py
 ```
 Este script crea una escena similar usando Python fuera del Script Editor. La ventaja de este flujo es que se parece mas a un proyecto automatizado: puedes versionar scripts, repetir experimentos y conectar tu simulacion con herramientas externas.
 

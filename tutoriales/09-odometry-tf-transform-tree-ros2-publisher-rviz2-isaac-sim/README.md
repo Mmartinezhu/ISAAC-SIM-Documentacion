@@ -22,7 +22,12 @@ El flujo de trabajo:
 
 ## Parte 1: Preparar la escena
 
-1. Abre Isaac Sim.
+1. Abre Isaac Sim con:
+
+   ```bash
+   talos@IsaacUN:~/isaac-sim$ ./launch_isaacsim.bash
+   ```
+
 2. Crea o abre una escena con Carter v1.
 3. Verifica que Carter tenga `Articulation Root`.
 4. Confirma que el robot se mueve con el control de los tutoriales anteriores.
@@ -76,7 +81,13 @@ y en chasis link Prim seleccionamos /base_link
 
 ## Parte 8: Probar desde ROS2
 
-Con la simulacion en `Play`, abre una terminal con ROS2 cargado y revisa:
+Antes de ejecutar cualquier comando ROS, abre una terminal ROS con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
+
+Con la simulacion en `Play`, ejecuta los comandos siguientes dentro de esa terminal.
 
 ```bash
 ros2 topic list
@@ -110,6 +121,12 @@ ros2 run tf2_tools view_frames
 ```
 
 ## Parte 9: Visualizar en RViz2
+
+Usa la misma terminal ROS o abre otra con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
 
 Abre RViz2:
 

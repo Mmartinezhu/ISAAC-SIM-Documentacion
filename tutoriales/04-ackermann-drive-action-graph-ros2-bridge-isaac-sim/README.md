@@ -16,7 +16,12 @@ El flujo va a ser:
 
 ## Parte 1: Preparar la escena
 
-1. Abre Isaac Sim.
+1. Abre Isaac Sim con:
+
+   ```bash
+   talos@IsaacUN:~/isaac-sim$ ./launch_isaacsim.bash
+   ```
+
 2. Crea y prepara una escena nueva, en Window > Browser > Isaac Sim assets. Hay diferentes Assets que pueden ayuda a tener una escena mas personalizada, por ejemplo importando jettracer_track_solid.
 4. En el `Content Browser`, busca:
 
@@ -184,7 +189,13 @@ Si el robot no responde, revisa que el prim seleccionado tenga el `Articulation 
 
 ## Parte 6: Probar desde ROS2
 
-Con la simulacion en `Play`, abre una terminal con ROS2 cargado y verifica que el topico exista:
+Antes de ejecutar cualquier comando ROS, abre una terminal ROS con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
+
+Con la simulacion en `Play`, ejecuta los comandos siguientes dentro de esa terminal y verifica que el topico exista:
 
 ```bash
 ros2 topic list
@@ -236,13 +247,19 @@ Abre la escena preconfigurada:
 Isaac Sim > Sample > ROS2 > Scenario > leatherback_ackermann
 ```
 
-Presiona `Play` y en una terminal ejecuta:
+Presiona `Play`. Para este flujo usa una terminal ROS abierta con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
+
+En esa terminal ejecuta:
 
 ```bash
 ros2 launch cmdvel_to_ackermann cmdvel_to_ackermann.launch.py acceleration:=0.5 steering_velocity:=0.5
 ```
 
-En otra terminal ejecuta:
+En otra terminal ROS, abierta tambien con `./terminal_b.bash`, ejecuta:
 
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
@@ -259,6 +276,13 @@ Controles basicos:
 - `k`: detener.
 
 Tambien esta la opcion de utilizar un joystick, corriendo el script de python que esta en la carpeta del tutorial con el nombre de teleop_arckerman. 
+
+Abre una terminal ROS con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
+
 ```bash
 python3 teleop_ackerman.py
 ```

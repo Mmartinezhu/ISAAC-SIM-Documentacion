@@ -39,6 +39,13 @@ En navegacion movil, este mapa se usa para planear rutas, localizar el robot y a
 
 - haber completado el tutorial anterior
 - URDF Importer habilitado en Isaac Sim.
+
+Abre Isaac Sim con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./launch_isaacsim.bash
+```
+
 ## parte 0: Importar como ejemplo de isaac-sim (preferible no hacerlo)
 
 Isaac-sim ofrece ejemplos y assets pre cargados que podemos importar de forma rapida desde 
@@ -49,7 +56,6 @@ window > browsers > Isaac sim assets Despues en el menu inferior ingresamos a Is
 
 Para este tutorial conviene usar una habitacion simple porque despues generaremos un mapa.
 
-``
 1. Agrega algunos objetos simples al mapa.
 2. Agrega la fisica necesaria a los objetos.
 3. Arrastra el USD al Stage.

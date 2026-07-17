@@ -13,4 +13,6 @@ Documentacion en español para el semillero de instrumentacion avanzada de la Un
 7. [2D LiDAR Sensor in Isaac Sim - Action Graph + ROS2 Bridge](tutoriales/07-2d-lidar-sensor-action-graph-ros2-bridge-isaac-sim/README.md)
 8. [3D LiDAR Sensor in Isaac Sim - Action Graph + ROS2 Bridge](tutoriales/08-3d-lidar-sensor-action-graph-ros2-bridge-isaac-sim/README.md)
 9. [Odometry & TF in Isaac Sim - ROS2 TF Publisher & RViz2](tutoriales/09-odometry-tf-transform-tree-ros2-publisher-rviz2-isaac-sim/README.md)
-
+10. [ROS2 Navigation con Nav2 y Multi-Robot en Isaac Sim](tutoriales/10-ros2-navigation-nav2-multi-robot-isaac-sim/README.md)
+11. [ROS2 Navigation con Block World Generator en Isaac Sim](tutoriales/11-ros2-navigation-block-world-generator-isaac-sim/README.md)
+12. [Reinforcement Learning para Leatherback en Isaac Lab](tutoriales/12-leatherback-reinforcement-learning-isaac-lab/README.md)

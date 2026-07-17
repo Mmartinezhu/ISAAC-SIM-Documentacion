@@ -20,7 +20,12 @@ El flujo de trabajo:
 
 ## Parte 1: Preparar la escena
 
-1. Abre Isaac Sim.
+1. Abre Isaac Sim con:
+
+   ```bash
+   talos@IsaacUN:~/isaac-sim$ ./launch_isaacsim.bash
+   ```
+
 2. Crea o abre una escena con Carter v1.
 3. Revisa que Carter quede estable al presionar `Play`.
 4. Agrega algunos objetos frente al robot para que el LiDAR tenga superficies que detectar.
@@ -164,7 +169,13 @@ Cuando `type = laser_scan`, el mensaje se publica cuando el LiDAR completa un es
 
 ## Parte 6: Probar desde ROS2
 
-Con la simulacion en `Play`, abre una terminal con ROS2 cargado y revisa:
+Antes de ejecutar cualquier comando ROS, abre una terminal ROS con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
+
+Con la simulacion en `Play`, ejecuta los comandos siguientes dentro de esa terminal.
 
 ```bash
 ros2 topic list
@@ -197,6 +208,12 @@ ros2 topic echo /scan --once
 Mueve Carter o coloca objetos alrededor y revisa que cambien los rangos del `LaserScan`.
 
 ## Parte 7: Visualizar en RViz2
+
+Usa la misma terminal ROS o abre otra con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
 
 Abre RViz2:
 

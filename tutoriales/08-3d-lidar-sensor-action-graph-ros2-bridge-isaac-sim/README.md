@@ -20,7 +20,12 @@ El flujo de trabajo:
 
 ## Parte 1: Preparar la escena
 
-1. Abre Isaac Sim.
+1. Abre Isaac Sim con:
+
+   ```bash
+   talos@IsaacUN:~/isaac-sim$ ./launch_isaacsim.bash
+   ```
+
 2. Crea o abre una escena con Carter v1.
 3. Agrega objetos alrededor del robot para generar puntos visibles.
 4. Presiona `Play` brevemente para confirmar que el robot y la escena son estables.
@@ -167,7 +172,13 @@ Notas:
 
 ## Parte 6: Probar desde ROS2
 
-Con la simulacion en `Play`, abre una terminal con ROS2 cargado y revisa:
+Antes de ejecutar cualquier comando ROS, abre una terminal ROS con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
+
+Con la simulacion en `Play`, ejecuta los comandos siguientes dentro de esa terminal.
 
 ```bash
 ros2 topic list
@@ -198,6 +209,12 @@ ros2 topic echo /point_cloud --once
 ```
 
 ## Parte 7: Visualizar en RViz2
+
+Usa la misma terminal ROS o abre otra con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
 
 Abre RViz2:
 

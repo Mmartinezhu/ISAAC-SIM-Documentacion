@@ -24,7 +24,12 @@ El flujo de trabajo:
 
 ## Parte 1: Preparar la escena
 
-1. Abre Isaac Sim.
+1. Abre Isaac Sim con:
+
+   ```bash
+   talos@IsaacUN:~/isaac-sim$ ./launch_isaacsim.bash
+   ```
+
 2. Crea  prepara una escena.
 3. Agrega Carter v1.
 
@@ -186,7 +191,13 @@ sensor_msgs/msg/CameraInfo
 
 ## Parte 8: Probar desde ROS2
 
-Con la simulacion en `Play`, abre una terminal con ROS2 cargado y revisa:
+Antes de ejecutar cualquier comando ROS, abre una terminal ROS con:
+
+```bash
+talos@IsaacUN:~/isaac-sim$ ./terminal_b.bash
+```
+
+Con la simulacion en `Play`, ejecuta los comandos siguientes dentro de esa terminal.
 
 ```bash
 ros2 topic list
@@ -195,21 +206,21 @@ ros2 topic list
 Deben aparecer, segun los nodos que hayas creado:
 
 ```text
-/rgb
-/camera_info
+/carter/front_camera/rgb
+/carter/front_camera/camera_info
 ```
 
 Revisa el tipo de los topicos:
 
 ```bash
-ros2 topic /rgb
-ros2 topic /camera_info
+ros2 topic info /carter/front_camera/rgb
+ros2 topic info /carter/front_camera/camera_info
 ```
 
 Revisa la frecuencia de publicacion:
 
 ```bash
-ros2 topic hz /rgb
+ros2 topic hz /carter/front_camera/rgb
 ```
 
 Visualiza la imagen RGB:
@@ -218,7 +229,7 @@ en rviz2
 ```bash
 rviz2
 ```
-En Displays en la aprte izquierda abajo oprime en Add > By topic > /rgb > image 
+En Displays en la aprte izquierda abajo oprime en Add > By topic > /carter/front_camera/rgb > image
 Ahora puedes visualizar la camara de Isaac Sim en rviz2.
 
 Ó puedes usar. 
