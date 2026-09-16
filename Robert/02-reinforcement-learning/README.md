@@ -1,4 +1,4 @@
-# Parte 2: Reinforcement Learning del rover ROBERT en Isaac Lab
+# Parte 2: Reinforcement Learning de ROBERT en Isaac Lab
 
 Entrenamiento con PPO de una politica que mueve el rover por terreno irregular siguiendo comandos de velocidad, sin perder el rumbo al pasar obstaculos.
 
@@ -8,7 +8,7 @@ Las imagenes van en `imagenes/`; la lista de capturas pendientes esta en [imagen
 
 ## Objetivo
 
-Que el rover aprenda a superar obstaculos manteniendo la trayectoria que se le pide. La politica recibe un comando de velocidad (como el que luego mandara Nav2) y decide la velocidad de cada una de las seis ruedas y el angulo de los cuatro reductores de direccion. La suspension es pasiva y la politica no puede tocarla.
+Que el rover aprenda a superar obstaculos manteniendo la trayectoria que se le pide. La politica recibe un comando de velocidad y decide la velocidad de cada una de las seis ruedas y el angulo de los cuatro reductores de direccion. La suspension es pasiva y la politica no puede tocarla.
 
 El resultado se mide en centimetros de escalon que supera, grados de pendiente que sube y nivel de terreno irregular que cruza.
 
@@ -23,18 +23,7 @@ cd ~/Github/IsaacLab
 ./isaaclab.sh -p -c "print('Isaac Lab OK')"
 ```
 
-## Diferencias con el tutorial 12
 
-| | Tutorial 12 (Leatherback) | Este proyecto |
-| --- | --- | --- |
-| Tipo de entorno | `DirectRLEnv` | `ManagerBasedRLEnv` |
-| Robot | Asset de NVIDIA ya configurado | USD propio, configurado en la Parte 1 |
-| Acciones | 2 (steering, throttle) | 10 (6 velocidades de rueda, 4 angulos de direccion) |
-| Sensor | LiDAR 2D | Height scan (rejilla de alturas) |
-| Terreno | Escena USD fija | Generador procedural con curriculum de dificultad |
-| Entornos | 4 a 8 | 2048 a 6144 |
-
-Se usa `ManagerBasedRLEnv` porque la tarea se define por bloques declarativos (observaciones, recompensas, terminaciones, curriculum) y cada bloque se puede cambiar sin tocar el resto. Las cuatro fases de este proyecto son variaciones del mismo entorno cambiando terreno, comandos y una recompensa.
 
 ## Las cuatro fases
 
@@ -51,7 +40,7 @@ Esta guia describe la fase 1 con todo detalle, porque las otras heredan de ella 
 
 Isaac Lab carga el USD del robot y lo replica en cada entorno. Todo lo que contenga el archivo se replica: si tiene el suelo, el cubo de pruebas o el Action Graph de ROS2, cada uno de los 2048 entornos tendra su propio suelo, su cubo y un grafo intentando suscribirse a `/cmd_vel`. Ademas los `CollisionGroup` no se pueden replicar y hace fallar la carga.
 
-El USD para RL debe contener **solo** `/World/cuerpo_suspension` y `/World/PhysicsMaterials`. Como generarlo esta en la Parte 1 del proyecto, seccion 10.
+El USD para RL debe contener solo `/World/cuerpo_suspension` y `/World/PhysicsMaterials`. Como generarlo esta en la Parte 1 del proyecto, seccion 10.
 
 ## Parte 2: Estructura de archivos
 
@@ -80,7 +69,7 @@ mkdir -p $BASE/agents
 
 Los archivos se crean pegando su contenido con `cat > ruta << 'EOF'`; el contenido esta en [referencia-completa.md](referencia-completa.md).
 
-Una advertencia que costo dos entrenamientos: **no dejar copias de estos archivos en la raiz de Isaac Lab**. La tarea registrada lee la copia del paquete. Si se edita otra copia, los cambios no llegan y se entrena con la configuracion vieja sin ningun aviso.
+Una advertencia no dejar copias de estos archivos en la raiz de Isaac Lab. La tarea registrada lee la copia del paquete. Si se edita otra copia, los cambios no llegan y se entrena con la configuracion vieja sin ningun aviso.
 
 ## Parte 3: Registrar la tarea
 
@@ -109,11 +98,11 @@ Comprobar:
 ./isaaclab.sh -p scripts/environments/list_envs.py | grep -i rover
 ```
 
-Por que registrar y no instanciar la config a mano en un script propio: el `train.py` oficial pasa la configuracion por un decorador de Hydra que la procesa antes de construir el runner. Sin ese paso, `rsl_rl` recibe un diccionario incompleto y falla con `KeyError: 'class_name'`. Se perdio un rato en eso antes de entender que la solucion era registrar la tarea y usar los scripts oficiales.
+Por que registrar y no instanciar la config a mano en un script propio: el `train.py` oficial pasa la configuracion por un decorador de Hydra que la procesa antes de construir el runner. Sin ese paso, `rsl_rl` recibe un diccionario incompleto y falla con `KeyError: 'class_name'`.
 
 ## Parte 4: El entorno, bloque a bloque
 
-El archivo `rover_env_cfg.py` define una clase `RoverEnvCfg` compuesta por bloques. Aqui va cada uno con los valores usados y, sobre todo, **por que** esos valores. Casi ninguno coincide con los ejemplos de Isaac Lab, y hay una razon: los ejemplos estan calibrados para cuadrupedos que van a 1-3 m/s, y este rover va a 0.167 m/s. Casi todo lo que fallo en este proyecto fue un valor por defecto pensado para un robot seis veces mas rapido.
+El archivo `rover_env_cfg.py` define una clase `RoverEnvCfg` compuesta por bloques. Aqui va cada uno con los valores usados y, sobre todo, por que esos valores. Casi ninguno coincide con los ejemplos de Isaac Lab, y hay una razon: los ejemplos estan calibrados para cuadrupedos que van a 1-3 m/s, y este rover va a 0.167 m/s. 
 
 ### 4.1 Robot y actuadores
 
@@ -133,7 +122,7 @@ ROVER_CFG = ArticulationCfg(
 )
 ```
 
-Los actuadores de Isaac Lab **sobreescriben** los drives del USD. Lo configurado en la Parte 1 sirve para Isaac Sim; aqui se vuelve a declarar:
+Los actuadores de Isaac Lab sobreescriben los drives del USD. Lo configurado en la Parte 1 sirve para Isaac Sim; aqui se vuelve a declarar:
 
 | Grupo | Joints | effort_limit_sim | velocity_limit_sim | stiffness | damping |
 | --- | --- | --- | --- | --- | --- |
@@ -141,11 +130,11 @@ Los actuadores de Isaac Lab **sobreescriben** los drives del USD. Lo configurado
 | `direccion` | `reductor.*` | 20 | 3 | 100 | 10 |
 | `suspension` | `suspension`, `hombro.*`, `codo.*`, `union_sus.*` | **0** | 10 | 0 | 2 |
 
-Tres cosas importantes:
+1 cosas importante:
 
-- **Los regex** (`llanta.*`) esquivan el problema de los guiones bajos en los nombres. No hay que enumerar joints en ninguna parte.
+
 - **`effort_limit_sim = 0` en la suspension** es lo que la mantiene pasiva. Sin eso la politica descubre que puede usar hombros y codos como musculos y aprende a reptar, cosa que el robot real no puede hacer.
-- Los nombres son `effort_limit_sim` y `velocity_limit_sim`, no `effort_limit` y `velocity_limit`. Los antiguos estan obsoletos, y `velocity_limit` **se ignoraba en silencio**: el limite de 2.045 rad/s no se estaba aplicando hasta que se cambio el nombre.
+
 
 Sobre el solver: 32 iteraciones de posicion y 8 de velocidad, el doble de lo habitual, porque el lazo cerrado con tirantes de 43 g entre piezas de kilos es numericamente delicado. Con menos, la simulacion explotaba.
 
@@ -181,8 +170,7 @@ El terreno es una cuadricula de 20 filas por 20 columnas de parcelas de 5 m. Las
 | `step_width` | 0.9 m | El rover mide 0.826 m de punta a punta. Con el valor por defecto (0.3 m) esta a caballo entre tres peldaños y choca con el siguiente antes de subir el anterior |
 | `num_obstacles` | 20 | Con 6 en 25 m² un rover cruza la parcela sin tocar ninguno |
 
-Un dato que salio de la geometria y explica mucho: el radio de rueda es 8.15 cm, y un escalon de esa altura es **el limite fisico** para subir por rodadura. Por debajo, el punto de contacto queda bajo el eje y la rueda trepa sola; en el radio, el contacto esta a la altura del eje y solo puede empujar contra la pared. Por encima solo se sube si las otras ruedas empujan de forma coordinada. Un primer diseño arrancaba en 8 cm: era pedir el examen final como primera leccion.
-
+Un dato que salio de la geometria y explica mucho: el radio de rueda es 8.15 cm, y un escalon de esa altura es el limite fisico para subir por rodadura. Por debajo, el punto de contacto queda bajo el eje y la rueda trepa sola; en el radio, el contacto esta a la altura del eje y solo puede empujar contra la pared. Por encima solo se sube si las otras ruedas empujan de forma coordinada. 
 ### 4.3 Curriculum propio
 
 El curriculum estandar de Isaac Lab (`terrain_levels_vel`) sube de nivel a quien recorre mas de medio terreno y baja a quien recorre menos de la mitad de lo comandado. Para un cuadrupedo eso funciona; para este rover no hay zona intermedia: cualquiera que no recorra 2.5 m en el episodio **baja** de nivel. El resultado era un curriculum que descendia sin parar aunque el rover mejorara.
@@ -221,7 +209,7 @@ height_scanner = RayCasterCfg(
 
 Una rejilla de 21 × 18 rayos verticales (378 puntos) alrededor del rover que devuelve la altura del terreno bajo cada uno. Es la percepcion de la politica.
 
-Por que un height scan y no la camara ZED 2 del robot real: renderizar es el cuello de botella brutal del RL. Isaac Lab corre entornos sin camara a decenas de miles de pasos por segundo, y con camara cae a unos pocos miles. Los trabajos de locomocion en terreno irregular (ANYmal, los cuadrupedos de ETH) entrenan con height scan y en el robot real lo **generan** desde la nube de puntos de la camara. La politica ve lo mismo en simulacion y en realidad.
+Por que un height scan y no la camara ZED 2 del robot real: renderizar es el cuello de botella del RL. Isaac Lab corre entornos sin camara a decenas de miles de pasos por segundo, y con camara cae a unos pocos miles. Los trabajos de locomocion en terreno irregular (ANYmal, los cuadrupedos de ETH) entrenan con height scan y en el robot real lo **generan** desde la nube de puntos de la camara. La politica ve lo mismo en simulacion y en realidad.
 
 | Parametro | Valor | Por que |
 | --- | --- | --- |
@@ -307,9 +295,8 @@ Lo que **no** se penaliza, y por que:
 
 - **Inclinarse** (`flat_orientation_l2`): para trepar hay que inclinarse. Castigarlo es pedirle que no haga lo que necesita.
 - **Velocidad vertical** (`lin_vel_z_l2`): en escalones el movimiento vertical *es* subir el obstaculo. Ese termino sirve para que un cuadrupedo no rebote en llano.
-- **Alejarse del origen**: se planteo premiarlo para forzar el avance. Se descarto porque rompe el control por comandos: la politica optima seria ignorar `cmd_vel` y salir corriendo en linea recta. Un rover asi no sirve para Nav2. La distancia vive donde debe, en el criterio del curriculum.
 
-Lo que si se castiga con fuerza es que **cualquier pieza que no sea una llanta toque algo**: chasis, hombros, codos, almas, tirantes. Es lo que pidio el usuario y lo que de verdad limita al robot real.
+Lo que si se castiga con fuerza es que cualquier pieza que no sea una llanta toque algo: chasis, hombros, codos, almas, tirantes. Es lo que pidio el usuario y lo que de verdad limita al robot real.
 
 Las penalizaciones de suavidad (par, aceleracion, cambio de accion) estan diez o veinte veces mas bajas que en los ejemplos. Sirven para pulir un movimiento que ya funciona, no para descubrirlo; altas desde el principio, la respuesta optima siempre es no hacer nada.
 
