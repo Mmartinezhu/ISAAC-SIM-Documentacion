@@ -1,8 +1,8 @@
-# Proyecto: Rover ROBERT en Isaac Sim e Isaac Lab
+# ROBERT en Isaac Sim e Isaac Lab
 
-Documentacion del flujo completo del rover ROBERT del semillero: desde el modelo en Fusion 360 hasta una politica de aprendizaje reforzado entrenada en Isaac Lab.
+Documentacion del flujo completo de ROBERT: desde el modelo en Fusion 360 hasta una politica de aprendizaje reforzado entrenada en Isaac Lab.
 
-A diferencia de los tutoriales, que usan robots de ejemplo de NVIDIA ya preparados, aqui se trabaja con un robot propio. Eso obliga a resolver problemas que los tutoriales no cubren: un mecanismo con lazo cerrado, joints esfericos, nombres heredados del CAD, motores con limites reales y una politica que debe respetar todo eso.
+A continuacion se presentara el proceso realizado para el aprendizaje reforzado en isaac lab, desde el modelamiento del robot hasta el entrenamiento.
 
 ## Partes
 
