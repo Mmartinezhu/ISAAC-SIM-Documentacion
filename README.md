@@ -21,6 +21,6 @@ Documentacion en español para el semillero de instrumentacion avanzada de la Un
 
 Trabajo con robots propios del semillero. A diferencia de los tutoriales, aqui se documentan tambien los problemas que aparecen al usar un modelo que no viene preparado por NVIDIA.
 
-- [Rover ROBERT: de Fusion 360 a una politica de RL](proyectos/rover-robert/README.md)
-  1. [Simulacion en Isaac Sim: importar, resolver el lazo cerrado y controlar por ROS2](proyectos/rover-robert/01-simulacion/README.md)
-  2. [Reinforcement Learning en Isaac Lab](proyectos/rover-robert/02-reinforcement-learning/README.md)
+- [Rover ROBERT: de Fusion 360 a una politica de RL](Robert/README.md)
+  1. [Simulacion en Isaac Sim: importar, resolver el lazo cerrado y controlar por ROS2](Robert/01-simulacion/README.md)
+  2. [Reinforcement Learning en Isaac Lab](Robert/02-reinforcement-learning/README.md)
