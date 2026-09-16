@@ -479,7 +479,7 @@ Recto, arco y giro sobre el eje. Publicar con `-r 10` y dejarlo corriendo: si el
 Para depurar, mirar los puertos del Script Node en el Property Panel: `Inputs` muestra lo que llega de ROS y `Outputs` lo que calcula. Si `wheelVel` aparece como `[]`, el nombre del puerto no coincide con el del codigo.
 
 
-## Parte 10: Guardar los dos USD
+## Parte 9: Guardar los dos USD
 
 1. Con el Action Graph montado y funcionando: `File > Save As > robert_teleop.usd`.
 2. Para RL, borrar todo lo que no sea el robot y guardar aparte:
@@ -499,7 +499,7 @@ Si se olvida este paso, Isaac Lab replica el suelo, el cubo y el Action Graph en
 
 **Guardar a menudo.** Isaac Sim se cerro de golpe dos veces durante este trabajo y hubo que rehacer la configuracion entera. Por eso existe el script `01_configurar_joints.py`: para restaurarlo todo de una vez.
 
-## Parte 11: Prueba de pendiente maxima
+## Parte 10: Prueba de pendiente maxima
 
 Antes de entrenar conviene saber cuanto puede subir el rover por pura fisica. [scripts/rampa_anillos.py](scripts/rampa_anillos.py) crea una rampa de anillos concentricos: plataforma central, y anillos hacia fuera cada uno con mayor pendiente (5° a 35° de 5 en 5), con un tramo llano de 1 m entre rampas para que el rover se asiente antes de la siguiente. Los anillos van coloreados de verde a rojo y hay una luz lateral que marca las pendientes con sombreado.
 
