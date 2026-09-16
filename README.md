@@ -16,3 +16,11 @@ Documentacion en español para el semillero de instrumentacion avanzada de la Un
 10. [ROS2 Navigation con Nav2 y Multi-Robot en Isaac Sim](tutoriales/10-ros2-navigation-nav2-multi-robot-isaac-sim/README.md)
 11. [ROS2 Navigation con Block World Generator en Isaac Sim](tutoriales/11-ros2-navigation-block-world-generator-isaac-sim/README.md)
 12. [Reinforcement Learning para Leatherback en Isaac Lab](tutoriales/12-leatherback-reinforcement-learning-isaac-lab/README.md)
+
+## Proyectos
+
+Trabajo con robots propios del semillero. A diferencia de los tutoriales, aqui se documentan tambien los problemas que aparecen al usar un modelo que no viene preparado por NVIDIA.
+
+- [Rover ROBERT: de Fusion 360 a una politica de RL](proyectos/rover-robert/README.md)
+  1. [Simulacion en Isaac Sim: importar, resolver el lazo cerrado y controlar por ROS2](proyectos/rover-robert/01-simulacion/README.md)
+  2. [Reinforcement Learning en Isaac Lab](proyectos/rover-robert/02-reinforcement-learning/README.md)
