@@ -142,7 +142,8 @@ El spawn a `z = 0.65` es alto a proposito. Con escalones de hasta 30 cm, nacer a
 
 ### 4.2 Terreno y curriculum
 
-![Terreno de la fase 1](imagenes/01-terreno-fase1.png)
+<img width="1645" height="887" alt="image" src="https://github.com/user-attachments/assets/dd38b571-cf8e-4cd1-8e9e-aa603777f9bc" />
+
 
 *Terreno de la fase 1 visto desde arriba: columnas de escalones de bajada, de subida y de obstaculos; la dificultad crece por filas.*
 
@@ -192,8 +193,8 @@ Por encima de 1.5 m promociona, por debajo de 0.5 m retrocede, y entre medias **
 Se añaden dos terminos que solo reportan, `nivel_max` y `nivel_min`, para ver la dispersion. Si la media sube pero el minimo se queda en 0, hay un grupo de rovers que nunca despega.
 
 ### 4.4 Sensor: height scan
+<img width="1688" height="893" alt="image" src="https://github.com/user-attachments/assets/8f6bdf0b-2358-4122-b742-15153ed5a96c" />
 
-![Height scan sobre el rover](imagenes/02-height-scan.png)
 
 *Rejilla del height scan (debug_vis) sobre el rover: cada punto es la altura del terreno bajo el.*
 
@@ -264,7 +265,7 @@ Aqui esta la diferencia con el control por ICR de la Parte 1: alli un script cal
 
 Total 442. Los 21 de joints son 15 revolute mas los dos esfericos dentro de la articulacion, que cuentan tres cada uno. El ruido hace que la politica tolere sensores imperfectos.
 
-El `height_scan` pasa por una funcion propia, `height_scan_seguro`, que aplica `torch.nan_to_num`. Cuando un rayo no impacta nada, el sensor devuelve infinito; y `clip` acota infinitos pero **deja pasar los NaN intactos**. Eso costo un entrenamiento.
+El `height_scan` pasa por una funcion propia, `height_scan_seguro`, que aplica `torch.nan_to_num`. Cuando un rayo no impacta nada, el sensor devuelve infinito; y `clip` acota infinitos pero deja pasar los NaN intactos. Eso costo un entrenamiento.
 
 ### 4.8 Eventos
 
@@ -407,7 +408,8 @@ Reproducir el ultimo checkpoint:
 Para seguir a un rover con la camara: seleccionarlo en el Stage y pulsar `F`.
 
 Para verlo a velocidad real en vez de acelerado (util para juzgar como falla): `--real-time`. Y siempre con pocos entornos (`--num_envs 8` o `16`): si no se pasa `--num_envs`, `play.py` levanta los miles de rovers del entrenamiento y el viewport se arrastra. Si ademas se mira por NoMachine, parte del tiron de camara es la red, no la simulacion.
-![play.py con 8 rovers](imagenes/03-play-viewport.png)
+<img width="1141" height="605" alt="image" src="https://github.com/user-attachments/assets/fef6efed-16ca-4843-b193-fe653cd09d63" />
+
 
 *play.py con 8 rovers en el nivel 8. La flecha verde es el comando de velocidad y la azul la velocidad real.*
 
@@ -424,9 +426,10 @@ Para verlo a velocidad real en vez de acelerado (util para juzgar como falla): `
 | `Curriculum/nivel_max` y `nivel_min` | Dispersion | Que el minimo no se quede en 0 |
 | `Episode_Termination/*` | Por que acaban los episodios | Que domine `tiempo_agotado` |
 
-![Panel de TensorBoard](imagenes/04-tensorboard-metricas.png)
+<img width="983" height="274" alt="image" src="https://github.com/user-attachments/assets/47487f3f-7958-4e07-9b92-76ec3516bf0b" />
 
-*Panel de TensorBoard de un run sano: Curriculum/terreno sube, seguir_velocidad sube desde cerca de 0, Episode_Termination dominado por tiempo_agotado.*
+
+*Panel de TensorBoard de un run sano:*
 
 `Episode_Termination` es la mas diagnostica y la menos mirada. Si `inestable` es distinto de cero, la fisica esta explotando. Si `volcado` domina, la politica aun no sabe mantenerse. Si todo es `tiempo_agotado` pero el curriculum baja, el rover sobrevive sin avanzar.
 
@@ -445,17 +448,19 @@ Tras 10 000 iteraciones con 2048 entornos:
 
 Dos curriculos distintos (10 filas y 20 filas) convergieron al mismo 12.8 cm, lo que apuntaba a un limite real y no del curriculum. Un reentrenamiento desde cero con el clip de ±90° en la direccion (`clip90_cero`, 6144 entornos, 8000 iteraciones) dio el mismo resultado: el clip no cuesta rendimiento. Ese es el checkpoint base para las fases siguientes: `logs/rsl_rl/rover_robert/*_clip90_cero/model_8000.pt`.
 
-![Curriculum de clip90_cero](imagenes/05-fase1-curriculum.png)
+<img width="1707" height="880" alt="image" src="https://github.com/user-attachments/assets/dca7e3f1-68f8-41ca-9e12-78f7c41b2060" />
+
 
 *clip90_cero: Curriculum/terreno se estabiliza en ~9 de 20, nivel_max llega al tope a las 2300 iteraciones y nivel_min no sale de 0 en las 8000.*
 
-**El hallazgo que cambio el proyecto** salio al mirar el `play.py` con calma: los 12.8 cm venian de los rovers que **bajan** escalones. Los de la zona de subida nunca salieron del nivel 0. La politica no habia aprendido a subir un escalon vertical. Como cada rover esta fijo en su tipo de terreno y `Curriculum/terreno` es la media de los tres tipos, la curva escondia dos comportamientos opuestos.
+**El hallazgo que cambio el proyecto** salio al mirar el `play.py` con calma: los 12.8 cm venian de los rovers que bajan escalones. Los de la zona de subida nunca salieron del nivel 0. La politica no habia aprendido a subir un escalon vertical. Como cada rover esta fijo en su tipo de terreno y `Curriculum/terreno` es la media de los tres tipos, la curva escondia dos comportamientos opuestos.
 
 ## Parte 11: Fase 2, escalera progresiva
 
 Para atacar la subida en aislamiento se creo un terreno propio (`EscaleraProgresivaCfg` en `terrenos_rover.py`): plataforma central y anillos cuadrados concentricos con escalones de 5, 7, 9, 11, 12, 13, 14, 15, 16, 17 y 18 cm, huella de 1 m (cabe el rover entero), sin curriculum de niveles. Tarea `Isaac-Rover-Robert-Escalera-v0`, entorno `RoverEscaleraEnvCfg(RoverEnvCfg)`.
 
-![Escalera progresiva](imagenes/06-escalera-terreno.png)
+<img width="1460" height="830" alt="image" src="https://github.com/user-attachments/assets/544d764c-b4ba-4f76-bf7b-5895454527c6" />
+
 
 *Escalera progresiva: plataforma central de 3 m y once anillos de 1 m con escalones de 5 a 18 cm. Las cuatro copias son la rejilla 2 x 2 del generador.*
 
@@ -476,7 +481,9 @@ La caida gradual de exito con la altura apuntaba a un limite de politica. Pero l
 
 *Captura de play.py en escalera6: la rueda delantera ya esta sobre el escalon y la media choca de frente con la cara vertical. Con la trasera empujando y la delantera tirando no le alcanza para pivotar.*
 
-![Exito por escalon](imagenes/08-escalera-exito.png)
+<img width="1287" height="746" alt="image" src="https://github.com/user-attachments/assets/beed1b9d-1972-457d-8e8a-02a00ce15dc1" />
+
+
 
 *Curriculum/exito/escalon_Xcm en escalera6: caida gradual de ~65 % en 5 cm a ~5 % en 11-12 cm y cero a partir de 13 cm.*
 
@@ -487,8 +494,8 @@ Queda una prueba pendiente que aclararia si el limite es aun mas bajo: un test f
 ## Parte 12: Fase 3, pendientes
 
 Terreno `PendienteProgresivaCfg`: rampas cuadradas concentricas de 5 a 40 grados, de 1.5 m cada una. Tarea `Isaac-Rover-Robert-Pendiente-v0`, entorno `RoverPendienteEnvCfg(RoverEscaleraEnvCfg)`, con la misma recompensa `AlturaGanada`.
+<img width="1686" height="906" alt="image" src="https://github.com/user-attachments/assets/ce5405c1-33c1-4f55-995f-eea5c398f5b0" />
 
-![Pendiente progresiva](imagenes/09-pendiente-terreno.png)
 
 *Pendiente progresiva con color_scheme='height': cada banda de color es una rampa, de 20 a 34 grados de dentro hacia fuera. Los rovers nacen sobre la rampa mirando cuesta arriba.*
 
@@ -501,12 +508,12 @@ Terreno `PendienteProgresivaCfg`: rampas cuadradas concentricas de 5 a 40 grados
 El reset sobre la rampa vino de ver en `play.py` que los rovers nacian 70 cm en el aire con guiñada aleatoria y volcaban al aterrizar en 25-30°: fallos falsos que contaminaban la medida.
 
 En `pend_diag` se descubrio un **defecto de medida** que afectaba tambien a la escalera: los terminos de curriculum registran solo el ultimo lote de resets de cada iteracion (uno o dos rovers volcados), pisando el lote grande del `time_out`. Las tasas de exito eran muestras minusculas y sesgadas. Se arreglo con `ExitoRampa`, una clase `ManagerTermBase` que acumula exitos y cuentas con olvido exponencial. Las tendencias anteriores eran validas; los numeros, no.
+<img width="1299" height="537" alt="image" src="https://github.com/user-attachments/assets/db4c1d31-3b56-4706-b48b-216d48a81ed9" />
 
-![Tasas por rampa](imagenes/10-pendiente-rampa.png)
 
 *Curriculum/rampa/Xdeg y n_Xdeg en pendiente2: 22 grados al 92 % en el pico, 26 al 57 %, 30 al 3 %; entre 350 y 1400 rovers en ventana por rampa.*
 
-**Limite practico con friccion 1.0: 22-24 grados. 26° a medias, 30° excepcional.** Mejor checkpoint: `pendiente2/model_11000.pt` (las rampas faciles empeoraron al final del run, posible sobreoptimizacion del premio por altura). Con la friccion real del suelo (estimada en 0.6) bajara unos grados. Fase cerrada.
+Limite practico con friccion 1.0: 22-24 grados. 26° a medias, 30° excepcional. Mejor checkpoint: `pendiente2/model_11000.pt` (las rampas faciles empeoraron al final del run, posible sobreoptimizacion del premio por altura). Con la friccion real del suelo (estimada en 0.6) bajara unos grados. Fase cerrada.
 
 ## Parte 13: Fase 4, terreno denso
 
@@ -521,13 +528,16 @@ Es la tarea original (curriculum `terreno`, rumbos aleatorios, sin `AlturaGanada
 
 20 filas × 12 columnas de 8 m, friccion 0.8 en modo `max`.
 
-![Terreno denso](imagenes/11-denso-terreno.png)
+<img width="1501" height="821" alt="image" src="https://github.com/user-attachments/assets/526dc11a-0774-4c7f-a4a3-b7983deb17c9" />
+
 
 *Terreno denso: de izquierda a derecha, columnas de bloques y fosos, losas con huecos, rejilla y rugosidad; la dificultad crece hacia el fondo.*
 
 `denso1`, 3000 iteraciones desde `clip90_cero`: `Curriculum/terreno` en 12 de 20 (bloques y fosos de ±9.6 cm, huecos de 15 cm) y aun subiendo despacio. Terminaciones: 99.8 % tiempo agotado, 0.1 % vuelco, 0.03 % encallado. El techo coincide con el limite de ~9 cm de escalon que impone la rueda media.
 
-![denso1 en TensorBoard](imagenes/12-denso-tensorboard.png)
+<img width="387" height="269" alt="image" src="https://github.com/user-attachments/assets/dfd31780-d21b-4b47-8764-b761d00c0759" />
+
+<img width="969" height="271" alt="image" src="https://github.com/user-attachments/assets/d4aaf51a-f6a2-4241-9bc4-9094f07dadab" />
 
 *denso1: Curriculum/terreno llega a 12 de 20 y sigue subiendo despacio; seguir_velocidad baja de 2.0 a 1.0 a medida que el terreno se endurece; las terminaciones siguen siendo 99.8 % tiempo agotado.*
 
@@ -560,14 +570,6 @@ En orden cronologico. Cada uno costo al menos un entrenamiento.
 - **Segfault de Kit a 0 ms de arranque.** Habia otro Isaac Sim abierto (un `play.py` con viewport) y el segundo se quedaba sin VRAM. Comprobar con `nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv` antes de lanzar.
 - **La prueba con 60 iteraciones no mostraba resets por tiempo.** 60 iteraciones × 24 pasos × 0.02 s son 29 s, menos que un episodio de 40 s. Un diagnostico necesita 170-250 iteraciones.
 - **La escalera no era la que se creia.** Un `sed` de una prueba anterior habia dejado una lista de escalones vieja y el de 18 cm no existia. `ver_parches.py` lo delato (maximo en 1.11 m en vez de 1.37). Comprobar la linea `[escalera_progresiva] ...` que imprime el terreno al arrancar.
-
-## Trabajo futuro
-
-- Reproducir `denso1` sobre el terreno original de la fase 1 y comprobar que no perdio la capacidad de bajar escalones.
-- Afinar `denso1` con friccion aleatoria de 0.5 a 1.0 y masa ±20 %, para que la transferencia al robot real sea mas robusta.
-- Repetir la evaluacion de pendientes con friccion 0.6, la estimada para el suelo real.
-- Exportar la politica (`exported/policy.onnx`) y escribir el nodo ROS2 que la ejecute en el robot, con el height scan generado desde la ZED 2.
-- Confirmar o descartar la sospecha sobre `encallado` en la prueba fisica de escalones, y si se retoma esa fase, sustituirla por una terminacion de "atascado" real (velocidad cero con comando distinto de cero durante N segundos).
 
 ## Donde esta cada cosa
 
