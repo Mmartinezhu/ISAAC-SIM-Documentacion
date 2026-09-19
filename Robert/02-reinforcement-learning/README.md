@@ -36,6 +36,8 @@ cd ~/Github/IsaacLab
 
 Esta guia describe la fase 1 con todo detalle, porque las otras heredan de ella y solo cambian lo que se indica en sus secciones.
 
+Aviso (2026-09-19): ninguna de estas politicas recorta las acciones. La direccion puede pedir mas de ±90° y la traccion mas de 2.045 rad/s, asi que no son transferibles tal cual al robot; ver la seccion 4.6 y "Problemas resueltos". La siguiente fase (evaluacion fija y entrenamiento con acciones acotadas y observaciones disponibles en el robot) esta planificada en `siguiente-fase.md`.
+
 ## Parte 1: El USD limpio
 
 Isaac Lab carga el USD del robot y lo replica en cada entorno. Todo lo que contenga el archivo se replica: si tiene el suelo, el cubo de pruebas o el Action Graph de ROS2, cada uno de los 2048 entornos tendra su propio suelo, su cubo y un grafo intentando suscribirse a `/cmd_vel`. Ademas los `CollisionGroup` no se pueden replicar y hace fallar la carga.
@@ -243,10 +245,10 @@ El rover no tiene un destino. Recibe una velocidad y un rumbo, y su unica tarea 
 
 ```python
 traccion = mdp.JointVelocityActionCfg(joint_names=["llanta.*"], scale=2.045)
-direccion = mdp.JointPositionActionCfg(joint_names=["reductor.*"], scale=pi/2, use_default_offset=True, clip={".*": (-pi/2, pi/2)})
+direccion = mdp.JointPositionActionCfg(joint_names=["reductor.*"], scale=pi/2, use_default_offset=True)
 ```
 
-Diez acciones en [-1, 1]. Las seis primeras se escalan a velocidad de rueda (±2.045 rad/s); las cuatro ultimas a angulo de direccion (±90°). El `clip` acota tras el escalado, porque la red gaussiana puede sacar valores fuera de [-1, 1] y pediria 135° a un joint limitado a 90°.
+Diez acciones nominalmente en [-1, 1]. Las seis primeras se escalan a velocidad de rueda (±2.045 rad/s); las cuatro ultimas a angulo de direccion (±90°). **Ninguna de las dos lleva recorte**: la red gaussiana saca valores fuera de [-1, 1] (hasta ±3), asi que la politica puede pedir ±270° a un reductor que en el robot se limita a ±90°, y velocidades de rueda muy por encima de 2.045 rad/s (que el actuador convierte en par maximo). El clip de ±90° se acordo el 2026-09-12, pero el parche se pego en una copia del archivo fuera del paquete y nunca entro en vigor; se descubrio el 2026-09-19 al volcar la configuracion efectiva (`clip: null` en los `params/env.yaml` de todos los runs). Ver "Problemas resueltos". Se corrige en la tarea nueva de la siguiente fase, junto con el recorte de traccion.
 
 Aqui esta la diferencia con el control por ICR de la Parte 1: alli un script calcula las diez consignas desde `v` y `w`; aqui la politica las decide una a una. Puede dosificar el par rueda a rueda al trepar, que es lo que hace un rover real.
 
@@ -446,7 +448,9 @@ Tras 10 000 iteraciones con 2048 entornos:
 | `Curriculum/nivel_min` | 0 |
 | `Episode_Termination/tiempo_agotado` | 99.9 % |
 
-Dos curriculos distintos (10 filas y 20 filas) convergieron al mismo 12.8 cm, lo que apuntaba a un limite real y no del curriculum. Un reentrenamiento desde cero con el clip de ±90° en la direccion (`clip90_cero`, 6144 entornos, 8000 iteraciones) dio el mismo resultado: el clip no cuesta rendimiento. Ese es el checkpoint base para las fases siguientes: `logs/rsl_rl/rover_robert/*_clip90_cero/model_8000.pt`.
+Dos curriculos distintos (10 filas y 20 filas) convergieron al mismo 12.8 cm, lo que apuntaba a un limite real y no del curriculum. Un reentrenamiento desde cero con 6144 entornos y 8000 iteraciones (`clip90_cero`) dio el mismo resultado y es el checkpoint base de las fases siguientes: `logs/rsl_rl/rover_robert/*_clip90_cero/model_8000.pt`.
+
+**Correccion (2026-09-19):** el nombre `clip90_cero` engaña. Ese run se lanzo creyendo que llevaba el clip de ±90° en la direccion, pero la configuracion efectiva guardada en `params/env.yaml` dice `clip: null`: el parche nunca llego al archivo del paquete. Por tanto **no se ha medido** si limitar la direccion cuesta rendimiento, y ninguna de las politicas actuales respeta el limite del robot real. Lo que si demostro ese run es que el entrenamiento es reproducible: misma config, mismo resultado que el original.
 
 <img width="1707" height="880" alt="image" src="https://github.com/user-attachments/assets/dca7e3f1-68f8-41ca-9e12-78f7c41b2060" />
 
@@ -569,6 +573,7 @@ En orden cronologico. Cada uno costo al menos un entrenamiento.
 - **Un script propio no imprimia nada aunque terminara bien.** `app.close()` sale con `os._exit` y el buffer de stdout se pierde. Escribir los resultados a archivo o usar `flush=True`.
 - **Segfault de Kit a 0 ms de arranque.** Habia otro Isaac Sim abierto (un `play.py` con viewport) y el segundo se quedaba sin VRAM. Comprobar con `nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv` antes de lanzar.
 - **La prueba con 60 iteraciones no mostraba resets por tiempo.** 60 iteraciones × 24 pasos × 0.02 s son 29 s, menos que un episodio de 40 s. Un diagnostico necesita 170-250 iteraciones.
+- **El clip de direccion nunca estuvo activo.** Se acordo `clip={".*": (-pi/2, pi/2)}` en `direccion` el 2026-09-12 y se dio por hecho durante una semana y cinco entrenamientos. Al volcar la configuracion efectiva (`scripts/referencia_reproducible.py`, y `params/env.yaml` de cada run) aparecio `clip: null`: el parche se habia pegado en la copia de `rover_env_cfg.py` que vivia en la raiz de Isaac Lab, no en la del paquete. Leccion doble: leer siempre la configuracion efectiva que guarda el run, no la que uno cree haber escrito; y no dejar copias de los archivos de configuracion fuera del paquete (ya estaban implicadas en otro problema anterior).
 - **La escalera no era la que se creia.** Un `sed` de una prueba anterior habia dejado una lista de escalones vieja y el de 18 cm no existia. `ver_parches.py` lo delato (maximo en 1.11 m en vez de 1.37). Comprobar la linea `[escalera_progresiva] ...` que imprime el terreno al arrancar.
 
 ## Donde esta cada cosa

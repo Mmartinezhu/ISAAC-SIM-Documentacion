@@ -362,9 +362,11 @@ class ActionsCfg:
         joint_names=["reductor.*"],
         scale=math.pi / 2,
         use_default_offset=True,
-        # La red gaussiana puede sacar valores fuera de [-1, 1]; sin el clip
-        # pediria mas de 90 grados a un joint limitado a 90
-        clip={".*": (-math.pi / 2, math.pi / 2)},
+        # OJO: sin clip. El limite de ±90 grados se acordo el 2026-09-12 pero el parche
+        # nunca llego a este archivo (se pego en una copia de la raiz). Verificado el
+        # 2026-09-19 con referencia_reproducible.py: clip=null en clip90_cero, denso1 y
+        # pendiente2. La red saca hasta ±3 en crudo, o sea ±270 grados. Se corrige en la
+        # tarea nueva de la siguiente fase, no aqui.
     )
 
 

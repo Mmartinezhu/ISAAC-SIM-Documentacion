@@ -791,7 +791,7 @@ Un diagnostico con `ExitoRampa` necesita al menos dos episodios completos para s
 | Run | Tarea | Desde | Iteraciones | Que se aprendio |
 | --- | --- | --- | --- | --- |
 | `2026-09-10_12-42-31` | v0 | cero | 10 000 | Base original (con normalizacion de observaciones) |
-| `clip90_cero` | v0 | cero | 8000 | Base con clip ±90°; identico → el clip no cuesta |
+| `clip90_cero` | v0 | cero | 8000 | Repeticion desde cero con 6144 envs; identico al original. **Sin clip** (el nombre engaña: `clip: null` en su env.yaml) |
 | `escalera` | Escalera | base original | 2000 | Rumbos aleatorios: sube y baja; altura ~0 |
 | `escalera2` | Escalera | base original | 2000 | Rumbo fijo: aparca contra el escalon |
 | `escalera4` | Escalera | clip90_cero | 2000 | `AlturaGanada` valia 0 (bug del reset) |
