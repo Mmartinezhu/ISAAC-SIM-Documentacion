@@ -36,7 +36,7 @@ cd ~/Github/IsaacLab
 
 Esta guia describe la fase 1 con todo detalle, porque las otras heredan de ella y solo cambian lo que se indica en sus secciones.
 
-Aviso (2026-09-19): ninguna de estas politicas recorta las acciones. La direccion puede pedir mas de ±90° y la traccion mas de 2.045 rad/s, asi que no son transferibles tal cual al robot; ver la seccion 4.6 y "Problemas resueltos". La siguiente fase (evaluacion fija y entrenamiento con acciones acotadas y observaciones disponibles en el robot) esta planificada en `siguiente-fase.md`.
+Aviso (2026-09-19): ninguna de estas politicas recorta las acciones. La direccion puede pedir mas de ±90° y la traccion mas de 2.045 rad/s, asi que no son transferibles tal cual al robot; ver la seccion 4.6 y "Problemas resueltos". La siguiente fase (evaluacion fija, instrumentacion de actuadores y una politica nueva con acciones acotadas y solo las observaciones disponibles en el robot) esta documentada en [siguiente-fase.md](siguiente-fase.md), con su codigo en [referencia-evaluacion.md](referencia-evaluacion.md). Sus resultados corrigen varias cifras de esta guia: escalon aislado de 5 cm al 28-40 % (no 7-9 cm), pendientes de 20° al 0 % para toda politica no entrenada en rampas, y el checkpoint propuesto pasa a ser `robot_v1/model_9999.pt`.
 
 ## Parte 1: El USD limpio
 
@@ -582,6 +582,7 @@ En orden cronologico. Cada uno costo al menos un entrenamiento.
 | --- | --- |
 | Codigo completo de la fase 1 | [referencia-completa.md](referencia-completa.md) |
 | Codigo completo de las fases 2 a 4, scripts de diagnostico, comandos y cuadro de runs | [referencia-fases-2-4.md](referencia-fases-2-4.md) |
+| Siguiente fase: evaluacion fija, instrumentacion, tarea `robot_v1` (informe y codigo) | [siguiente-fase.md](siguiente-fase.md), [referencia-evaluacion.md](referencia-evaluacion.md) |
 | En la maquina Ubuntu | `~/Github/IsaacLab/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/rover/` y `~/Github/IsaacLab/scripts/` |
 | Checkpoints | `~/Github/IsaacLab/logs/rsl_rl/rover_robert/<fecha>_<run_name>/model_N.pt` |
 | Politica exportada (la genera `play.py`) | `.../<run>/exported/policy.pt` y `policy.onnx` |

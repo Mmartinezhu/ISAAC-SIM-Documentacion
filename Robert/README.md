@@ -20,7 +20,9 @@ La parte 1 termina con dos archivos USD: uno con Action Graph para teleoperar po
 | Subir escalones verticales | 7 a 9 cm; limite geometrico del rocker-bogie (la rueda media no pivota sobre el borde) | Parte 2, fase 2 |
 | Subir pendientes | 22 a 24 grados con solvencia, 26 a medias, 30 excepcional (friccion 1.0) | Parte 2, fase 3 |
 
-Politica candidata para el robot: `denso1`. Pendiente: robustez a friccion y masa, exportacion a ONNX y nodo ROS2.
+Revisado el 2026-09-20 con evaluacion fija (politica determinista, 100 episodios por condicion, ver [siguiente-fase.md](02-reinforcement-learning/siguiente-fase.md)): escalon aislado de 5 cm al 28-40 %, 7 cm al 1-13 %; rampas de 20° solo la politica entrenada en rampas (90 %), las demas 0 %; terreno denso de nivel 6 al 75-81 % en bloques y 25-28 % en losas con huecos.
+
+Politica candidata para el robot: `robot_v1/model_9999.pt` (solo observaciones medibles a bordo, acciones acotadas). Pendiente: politica de control con observaciones completas, robustez a friccion y masa, exportacion a ONNX y nodo ROS2.
 
 ## El robot
 
