@@ -6,12 +6,138 @@ Regla que se siguio en toda la fase: no cambiar PPO, recompensas, observaciones 
 
 ## Resumen ejecutivo
 
+**Aviso (2026-09-21):** la primera entrega evaluo `robot_v1` con ruido de exploracion en el actor y con cuotas desiguales. La seccion **Revision 2** contiene los resultados corregidos y sustituye a las secciones 4, 5, 7 y 8 para cualquier decision. Cambian el checkpoint propuesto (`model_1000` en vez de `model_9999`), la afirmacion de que los recortes no cuestan rendimiento (falsa en rampa) y la lectura de los vuelcos y de la direccion.
+
 - **Cuatro errores de medida** que invalidaban cifras anteriores, corregidos antes de entrenar nada: el recorte de direccion nunca estuvo activo; las tasas de exito por escalon y por rampa se calculaban sobre el ultimo lote de resets (1-3 rovers volcados); el spawn aleatorio en la mitad alta de las rampas inflaba las tasas; y `applied_torque` del actuador implicito no es el par que aplica el solver.
 - **Las politicas anteriores controlaban par a bang-bang**: pedian 30-66 rad/s a ruedas limitadas a 2.045 y saturaban el servo de direccion contra el tope de ±90° el 63-93 % del tiempo. **Acotar las acciones no cuesta rendimiento** (medido con la misma politica, 4 variantes, 3 niveles).
 - **Politica nueva `robot_v1`**: actor con solo lo que el robot mide (414 entradas, sin suspension), critico privilegiado (442), tracción y direccion acotadas, entrenada desde cero 10 000 iteraciones. **Iguala a `denso1` en terreno denso y llano** con saturacion de traccion del 95 % al 4 % y la mitad de deriva en parada.
 - **Checkpoint propuesto: `robot_v1/model_9999.pt`** (en `logs/rsl_rl/rover_robert_v1/2026-09-19_*_robot_v1/`). `model_8000` es indistinguible en distribucion y vuelca 18 veces mas fuera de ella.
 - **Limites reales, medidos con politica determinista, semilla 42, 100 episodios por condicion**: escalon aislado de 5 cm al 28-40 % (7 cm al 1-13 %, 9 cm 0-1 %); rampas de 20° o mas 0 % para toda politica no entrenada en rampas (la entrenada en rampas, `pendiente2`, 90 % a 20°, 59 % a 22°, 27 % a 24°, 0 % a 26°); terreno denso de nivel 6 (obstaculos ±7 cm, huecos 10 cm) 75-81 % en bloques y 25-28 % en losas con huecos.
 - **Fallos abiertos**: con comando cero el rover deriva 0.5 m en 60 s; la politica nueva pone las ruedas de las esquinas a ±90° la mayor parte del tiempo, y sobre rampas eso la deja clavada (y `model_8000` vuelca).
+
+## Revision 2: evaluador corregido y resultados definitivos (2026-09-21)
+
+Esta seccion sustituye, para cualquier decision, a las secciones 4, 5, 7 y 8 de mas abajo, que se conservan como registro de la primera entrega. Todo lo que sigue se midio con el evaluador v2 ([referencia-evaluacion.md](referencia-evaluacion.md), seccion "Evaluador v2"), con resultados en `~/robert_eval_v2/` (etiquetas `e2_*` y `v_*`); los de la primera entrega siguen en `~/robert_eval/`.
+
+### R2.1 Que estaba mal en la primera entrega
+
+| Defecto | Efecto | Correccion |
+| --- | --- | --- |
+| Las clases de evaluacion de `robot_v1` llamaban a `aplicar_robot()` despues de desactivar el ruido, y `aplicar_robot` instala un grupo de observaciones nuevo con `enable_corruption=True` | **Toda la evaluacion de `robot_v1` de la primera entrega se hizo con ruido de exploracion en el actor.** Los 128 vuelcos en rampa de `model_8000` y el "96 % con las ruedas al tope" de `model_9999` no se reproducen sin ruido | `enable_corruption = False` despues de `aplicar_robot` en las cinco clases; el evaluador aborta si el actor tiene corrupcion activa y registra el estado en `resumen.json` |
+| Los entornos que terminaban pronto seguian aportando episodios mientras se esperaba a los demas | Denominadores desiguales (108-134 intentos en 30-34°) y sesgo hacia los rovers que vuelcan | Cuota exacta por entorno en el script y en los gestores de metricas (`fijar_cuota`); verificacion de intentos por grupo; informe de cuotas incompletas |
+| El porcentaje de acciones crudas fuera de ±1 se presentaba como "tiempo con las ruedas al tope" | Sobreestimacion: son cosas distintas | Cuatro medidas separadas por reductor: accion cruda fuera de ±1, objetivo recortado a 90°, angulo real ≥ 85°, y error objetivo-angulo, velocidad y par |
+| "Parada" solo media distancia recorrida | No distingue derivar de girar sobre si mismo | Trayectoria, desplazamiento final, desviacion maxima y velocidad residual, desde el reset y tras 2 s de asentamiento |
+| "Exito" en rampas y escalones mezclaba llegada y estabilidad | El criterio solo comprueba posicion 1 s | `llegadas_pos_1s` (solo posicion), `completos_sin_fallo` (llegada y time_out sin vuelco) y `vuelco_tras_llegada`, por separado |
+| Las lecturas de actuadores tras `env.step()` incluian el paso terminal de cada episodio, en el que el entorno ya esta reseteado | Una muestra por episodio mezclaba accion a cero, comando nuevo y estado nuevo | Esas muestras se excluyen de las estadisticas por paso (`muestras_excluidas_paso_terminal` en el JSON); las series guardan la mascara `valido` |
+| El modulo del wrench de reaccion se llamaba "par medido" | No es el par del motor | Renombrado `wrench_par_modulo_*_NO_es_par_motor`; el par del actuador implicito se llama `par_estimado` |
+| Las rampas eran constantes de modulo (20-34°) | No se podia medir por debajo de 20° | Geometria leida de la configuracion del terreno; tarea `Pendiente-v2-Eval` con 10, 15, 20, 22, 24 y 26° |
+| `pendiente2` se evaluaba sin recortes y `robot_v1` con ellos, sin decirlo | Comparacion no controlada | Cada JSON registra los recortes efectivos; `pendiente2` evaluada en A (sin) y D (con) |
+
+Verificacion de la cuota: 48 entornos, 2 episodios, rampas de 10-26°: 16/16 intentos exactos por rampa, 0 entornos incompletos. En todas las ejecuciones de esta revision `cuota_ok=True`, `incompletos=0`, `actor_enable_corruption=False`, `normalizacion_sin_cambios=True` y `actor_modo_eval=True`.
+
+### R2.2 Condiciones
+
+Politica determinista, semilla 42 (y 43, 44 donde se indica), sin ruido en observaciones, normalizacion cargada del checkpoint y verificada sin cambios, curriculum congelado, posiciones iniciales fijas por indice de entorno, misma fisica (friccion del terreno 0.8 en denso y llano, 1.0 en rampas y escalones). Recortes efectivos: `robot_v1` siempre con traccion ±2.045 rad/s y direccion ±90° (tareas `*-v1-Eval`); `denso1` con ambos recortes (variante D); `pendiente2` en A (sin recortes, como se entreno) y D. Cuotas: llano 100 episodios de 60 s por guion (500 entornos × 1); denso 20 rovers por columna × 2 episodios de 60 s (bloques 160, losas 120, rejilla 120, rugoso 80); rampas y escalones 100 episodios de 40 s por condicion.
+
+### R2.3 Tablas
+
+**Llano (100 por guion).** Exito = `time_out` sin vuelco y < 10 % del tiempo atascado. Entre parentesis, desplazamiento final en 60 s.
+
+| Guion | `robot_v1` 1000 | `robot_v1` 8000 | `robot_v1` 9999 | `denso1` D |
+| --- | --- | --- | --- | --- |
+| 0.05 m/s | 100/100 (3.08 m) | 95/100 (3.19) | 100/100 (3.27) | 100/100 (3.39) |
+| 0.10 m/s | 100/100 (6.57) | 100/100 (6.68) | 100/100 (6.44) | 100/100 (7.17) |
+| 0.15 m/s | 100/100 (8.83 = 0.147 m/s) | 100/100 (7.65 = 0.127) | 100/100 (7.50 = 0.125) | 100/100 (7.80) |
+| Giro 90° | 100/100 | 98/100 | 99/100 | 100/100 |
+| Parada: desplazamiento final / trayectoria / velocidad residual tras 2 s | 0.17 m / 0.43 m / 0.01 m/s | 0.30 / 0.50 / 0.01 | 0.29 / 0.49 / 0.01 | **2.57 m / 2.76 m / 0.05 m/s** |
+
+Semillas 43 y 44 repiten estos valores con diferencias de ±0.1 m y ±5 episodios.
+
+**Denso (bloques / losas / rejilla / rugoso, exitos / intentos = x/160, x/120, x/120, x/80).**
+
+| Nivel | `robot_v1` 1000 | `robot_v1` 8000 | `robot_v1` 9999 | `denso1` D |
+| --- | --- | --- | --- | --- |
+| 0 | 160 / 117 / 114 / 78 | 160 / 117 / 109 / 67 | 159 / 117 / 105 / 68 | 160 / 115 / 113 / 76 |
+| 6 (semilla 42) | **138 / 38 / 24 / 49** | 122 / 32 / 12 / 43 | 114 / 33 / 9 / 44 | 118 / 30 / 17 / 42 |
+| 6 (semilla 43) | 137 / 38 / 28 / 44 | 119 / 29 / 18 / 39 | 112 / 31 / 16 / 39 | — |
+| 6 (semilla 44) | 137 / 34 / 23 / 49 | 117 / 27 / 16 / 39 | 118 / 24 / 13 / 42 | — |
+| 12 | 19 / 5 / 6 / 37 | 24 / 2 / 2 / 34 | 23 / 7 / 1 / 32 | 19 / 12 / 5 / 34 |
+
+En nivel 6, `model_1000` gana en las cuatro columnas en las tres semillas: bloques 86 % frente a 73-76 % (8000) y 70-74 % (9999); rejilla 19-23 % frente a 10-15 % y 7-13 %. En nivel 12 los cuatro candidatos estan dentro del ruido.
+
+**Rampas (llegadas / 100; `completos_sin_fallo` coincidio con las llegadas y no hubo vuelcos ni vuelcos tras llegada en ninguna ejecucion).**
+
+| Rampa | `pendiente2` A (sin recortes) | `pendiente2` D (con recortes) | `robot_v1` 1000 | `robot_v1` 8000 | `robot_v1` 9999 |
+| --- | --- | --- | --- | --- | --- |
+| 10° | 97 | 97 | 99 | 85 | 66 |
+| 15° | 97 | 98 | 12 | 51 | 1 |
+| 20° | 84 | **0** | 0 | 0 | 0 |
+| 22° | 47 | 0 | 0 | 0 | 0 |
+| 24° | 17 | 0 | 0 | 0 | 0 |
+| 26° | 0 | 0 | 0 | 0 | 0 |
+
+**Escalon aislado (llegadas / 100).**
+
+| Escalon | `robot_v1` 1000 | `robot_v1` 8000 | `robot_v1` 9999 | `denso1` D |
+| --- | --- | --- | --- | --- |
+| 5 cm | **63** | 36 | 27 | 42 |
+| 7 cm | 1 | 0 | 1 | 1 |
+| 9 cm | 0 | 0 | 0 | 0 |
+
+### R2.4 Actuadores, por reductor
+
+Fraccion del tiempo (muestras validas) con el angulo real ≥ 85°, en el orden `reductor_der_d`, `reductor_izq_d`, `reductor_der_t_`, `reductor_izq_t` (delantero derecho, delantero izquierdo, trasero derecho, trasero izquierdo). Error = |objetivo − angulo| medio.
+
+| Ejecucion | angulo ≥ 85° | objetivo recortado a 90° | error medio (rad) | par estimado medio (N·m, limite 20) |
+| --- | --- | --- | --- | --- |
+| `robot_v1` 1000, llano | 0.20 / 0.01 / 0.39 / **0.79** | 0.38 / 0.20 / 0.56 / 0.89 | 0.75 / 0.77 / 0.58 / 0.22 | 13.4 / 13.9 / 10.2 / 4.2 |
+| `robot_v1` 9999, llano | 0.20 / 0.21 / 0.64 / 0.58 | 0.30 / 0.26 / 0.77 / 0.72 | 0.51 / 0.57 / 0.23 / 0.43 | 11.3 / 11.9 / 4.8 / 7.8 |
+| `denso1` D, llano | 0.05 / 0.05 / **0.75** / 0.22 | 0.21 / 0.24 / 0.81 / 0.50 | 0.73 / 0.74 / 0.21 / 0.60 | 13.5 / 13.2 / 4.3 / 10.6 |
+| `robot_v1` 1000, rampas | 0.16 (media) | 0.22 | 0.27 | — |
+| `robot_v1` 9999, rampas | 0.81 / 0.80 / 0.83 / 0.80 | 0.84 / 0.85 / 0.87 / 0.85 | 0.12 / 0.14 / 0.10 / 0.11 | 3.5 / 4.1 / 3.3 / 3.8 |
+
+Traccion: en todos los candidatos con recorte, la accion cruda esta fuera de ±1 el 86-99 % del tiempo y el objetivo escalado esta en el tope de 2.045 rad/s ese mismo porcentaje; el par estimado se recorta solo el 2-6 % del tiempo (antes 95-99 %).
+
+### R2.5 Videos y series sincronizadas
+
+Once grabaciones en `~/robert_eval_v2/v_*/video/*.mp4`, cada una con su panel `series_env<i>.png` del mismo rover y la misma ejecucion (fotograma 0 = paso 0): comando y velocidad real, objetivo y angulo de cada reductor, objetivo y velocidad de cada rueda, acciones crudas de traccion y marca de terminacion con su motivo. `robot_v1` 1000 y 9999 en recta a 0.10 m/s, giro de 90° y parada; 1000 y 9999 en la columna de rejilla de nivel 6; 1000, 8000 y 9999 en la rampa de 15°.
+
+Lo que muestran las series (observado):
+
+- **Rampa de 15°, `model_9999`**: a los 2-3 s los cuatro reductores van a ±90° (dos a +90, dos a −90) y no vuelven; las ruedas giran a ±2 rad/s alternando sentido; velocidad de avance cero durante los 40 s. Asi es "atascarse" para esta politica: una postura de pivote con las ruedas de lado, patinando.
+- **Recta a 0.10 m/s, `model_1000`**: la velocidad sigue el comando (error 0.02 m/s), pero los objetivos de direccion oscilan a 50 Hz entre ±90° y los angulos reales barren ±75°; el trasero izquierdo esta bloqueado de lado el 79 % del tiempo; la rueda media derecha gira en sentido contrario al avance a −2 rad/s.
+- **Parada, `model_1000`**: tres reductores clavados a ±90°, el cuarto oscilando ±75°, y las seis ruedas girando a ±2 rad/s en sentidos opuestos durante 60 s. El desplazamiento de 0.17 m se consigue porque las ruedas se anulan entre si, no porque el rover frene. Las medidas de parada no lo detectan; hace falta la velocidad media de rueda por guion (pendiente).
+- `denso1` con recortes presenta el mismo patron de rueda trasera atravesada (derecha, 75 % del tiempo).
+
+Confirmacion visual en los `.mp4`: *pendiente de anotar por el autor*.
+
+### R2.6 Hallazgos y hipotesis
+
+Observado:
+
+1. **Los recortes no son gratis en rampa.** `pendiente2` cae de 84 % a 0 % a 20° al acotar tracción y direccion; en denso y llano no cambian nada. En rampa la politica usa el objetivo de velocidad como palanca de par, y con el tope el par disponible en movimiento (2.16 × (2.045 − ω)) no basta.
+2. **La actuacion es degenerada en todos los candidatos**: direccion oscilando o bloqueada a 90°, ruedas contrarrotando. Con los recortes, el bang-bang de velocidad se ha convertido en bang-bang de direccion y de sentido de giro. Los objetivos ya no superan los limites, pero el uso de los actuadores no es transferible a servos reales.
+3. **`model_1000` es el mejor checkpoint de `robot_v1` en llano, denso (tres semillas) y escalon**; en rampa de 15° lo es `model_8000`. Las 9000 iteraciones posteriores a la 1000 no mejoraron nada en evaluacion determinista.
+4. **Quitar la suspension del actor no cuesta rendimiento medible**: `robot_v1` iguala o supera a `denso1` con recortes en todo salvo losas de nivel 12 (5 frente a 12 de 120, dentro del ruido). Sigue sin ser una comparacion limpia (historias de entrenamiento distintas).
+5. **Los 128 vuelcos y el "96 % al tope" de la primera entrega eran ruido de evaluacion.** Sin ruido no hay vuelcos en ningun candidato ni escenario; el bloqueo a 90° de `model_9999` en rampa es real (81 %) pero no provoca vuelcos.
+6. `denso1` con recortes deriva 2.57 m con comando cero; `robot_v1` 0.17-0.30 m (con ruedas girando).
+7. Ninguna politica sin entrenamiento en rampas sube 20°. `robot_v1` sube 10° (99 % el 1000) y 15° a medias (51 % el 8000).
+
+Hipotesis (no comprobadas):
+
+- La rueda trasera atravesada actua como estabilizador de guiñada o freno de deriva; explicaria por que ninguna politica pasa de 0.13 m/s cuando se le piden 0.15 (el 1000, con menos bloqueo, llega a 0.147).
+- La oscilacion de direccion a 50 Hz es gratis para la politica: `penaliza_cambio_accion` (−0.005) y `penaliza_par` (−2.5e−6) no la castigan lo bastante frente al tracking, y con el recorte una desviacion grande de la gaussiana no cuesta nada (por eso `Policy/mean_std` subio a 1.66).
+- El curriculum promociona por distancia recorrida con rumbos aleatorios, que se puede maximizar con esta actuacion; la evaluacion determinista con posiciones fijas no la premia. Eso explicaria que la evaluacion fija sea plana desde la iteracion 1000 mientras el curriculum subia.
+
+### R2.7 Recomendacion provisional y punto de parada
+
+Checkpoint provisional: **`robot_v1/model_1000.pt`** (`logs/rsl_rl/rover_robert_v1/2026-09-19_*_robot_v1/`), por ser el mejor en llano, denso y escalon con tres semillas, con la reserva de que su actuacion (direccion oscilante, ruedas contrarrotando en parada) no es aceptable para el robot real. `model_8000` solo lo supera en la rampa de 15°.
+
+Con estos resultados, el unico experimento corto que tiene sentido es sobre la **direccion**: la parada y las rampas son sintomas del mismo uso degenerado de los actuadores. Que forma toma (penalizar velocidad o angulo de los reductores, reducir la escala de la accion de direccion, filtrar los objetivos) es la decision pendiente; no se ha cambiado nada todavia.
+
+Pendiente de esta revision: confirmacion visual de los videos por el autor; velocidad media de rueda por guion en llano; evaluacion con friccion 0.6 fijando suelo y ruedas; politica de control con observaciones completas (10 h, no ejecutada por indicacion del plan).
+
+---
 
 ## 1. Referencia reproducible
 
@@ -83,6 +209,8 @@ Conclusiones:
 
 ## 4. Evaluacion fija
 
+*Primera entrega (2026-09-20). Las cifras de `robot_v1` de esta seccion se midieron con ruido en el actor y sin cuota exacta; ver Revision 2 para las corregidas.*
+
 Protocolo: politica determinista (media de la gaussiana), semilla 42, curriculum congelado, normalizacion de observaciones cargada del checkpoint, sin ruido en observaciones, mismas posiciones iniciales. Escenarios y criterios:
 
 | Escenario | Tarea | Condiciones | Criterio de exito |
@@ -129,6 +257,8 @@ Distancia recorrida en 60 s en denso nivel 12 (bloques): `clip90_cero` 3.75 m, `
 
 ## 5. Comparacion aislada de los recortes
 
+*Primera entrega (2026-09-20). Las cifras de `robot_v1` de esta seccion se midieron con ruido en el actor y sin cuota exacta; ver Revision 2 para las corregidas.*
+
 `denso1` evaluado con la misma semilla en cuatro variantes: A original, B recorte de traccion (`clip={".*": (-2.045, 2.045)}` en `JointVelocityActionCfg`), C recorte de direccion (±pi/2), D ambos. El recorte actua sobre el objetivo escalado: velocidad objetivo media 2.02 rad/s en B y D frente a 30.6 en A y C.
 
 | Nivel | Variante | Bloques | Losas | Rejilla | Rugoso |
@@ -167,6 +297,8 @@ El critico conserva la informacion privilegiada de simulacion sin ruido (`obs_gr
 
 ## 7. Entrenamiento nuevo: `robot_v1`
 
+*Primera entrega (2026-09-20). Las cifras de `robot_v1` de esta seccion se midieron con ruido en el actor y sin cuota exacta; ver Revision 2 para las corregidas.*
+
 Tarea `Isaac-Rover-Robert-Denso-v1`: terreno denso, curriculum, comandos, recompensas, terminaciones, eventos y PPO identicos a `denso1`; cambian solo el actor (seccion 6) y los dos recortes de accion. Desde cero, 6144 entornos, 10 000 iteraciones (10 h), checkpoints cada 250, semilla 42. Logs en `logs/rsl_rl/rover_robert_v1/`.
 
 Curvas de entrenamiento (valor final; maximo e iteracion):
@@ -199,6 +331,8 @@ Evaluacion fija por checkpoint, denso nivel 12 (bloques / losas / rejilla / rugo
 `Policy/mean_std` crece hasta 1.66 porque con las acciones recortadas una desviacion grande sale gratis y el termino de entropia (0.005) la empuja: la politica estocastica del entrenamiento vive de la saturacion. Es otra razon para decidir por evaluacion determinista.
 
 ## 8. Fallos observados y posibles explicaciones
+
+*Primera entrega (2026-09-20). Las cifras de `robot_v1` de esta seccion se midieron con ruido en el actor y sin cuota exacta; ver Revision 2 para las corregidas.*
 
 Separados: lo observado es medido; la explicacion es hipotesis salvo que se indique.
 

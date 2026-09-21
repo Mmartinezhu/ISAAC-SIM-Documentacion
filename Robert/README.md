@@ -22,7 +22,7 @@ La parte 1 termina con dos archivos USD: uno con Action Graph para teleoperar po
 
 Revisado el 2026-09-20 con evaluacion fija (politica determinista, 100 episodios por condicion, ver [siguiente-fase.md](02-reinforcement-learning/siguiente-fase.md)): escalon aislado de 5 cm al 28-40 %, 7 cm al 1-13 %; rampas de 20° solo la politica entrenada en rampas (90 %), las demas 0 %; terreno denso de nivel 6 al 75-81 % en bloques y 25-28 % en losas con huecos.
 
-Politica candidata para el robot: `robot_v1/model_9999.pt` (solo observaciones medibles a bordo, acciones acotadas). Pendiente: politica de control con observaciones completas, robustez a friccion y masa, exportacion a ONNX y nodo ROS2.
+Politica candidata provisional para el robot: `robot_v1/model_1000.pt` (solo observaciones medibles a bordo, acciones acotadas; Revision 2 del 2026-09-21). Reserva: su uso de los actuadores (direccion oscilante o bloqueada a 90°, ruedas contrarrotando en parada) no es aceptable para servos reales; el siguiente experimento corto sera sobre la direccion. Pendiente: politica de control con observaciones completas, robustez a friccion y masa, exportacion a ONNX y nodo ROS2.
 
 ## El robot
 
