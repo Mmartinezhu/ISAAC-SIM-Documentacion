@@ -4,8 +4,6 @@ Entrenamiento con PPO de una politica que mueve el rover por terreno irregular s
 
 Codigo completo de la tarea base en [referencia-completa.md](referencia-completa.md); el de las fases 2 a 4 (terrenos propios, recompensa por altura, diagnosticos y scripts) en [referencia-fases-2-4.md](referencia-fases-2-4.md).
 
-Las imagenes van en `imagenes/`; la lista de capturas pendientes esta en [imagenes/README.md](imagenes/README.md).
-
 ## Objetivo
 
 Que el rover aprenda a superar obstaculos manteniendo la trayectoria que se le pide. La politica recibe un comando de velocidad y decide la velocidad de cada una de las seis ruedas y el angulo de los cuatro reductores de direccion. La suspension es pasiva y la politica no puede tocarla.
@@ -36,7 +34,11 @@ cd ~/Github/IsaacLab
 
 Esta guia describe la fase 1 con todo detalle, porque las otras heredan de ella y solo cambian lo que se indica en sus secciones.
 
-Aviso (2026-09-19): ninguna de estas politicas recorta las acciones. La direccion puede pedir mas de ±90° y la traccion mas de 2.045 rad/s, asi que no son transferibles tal cual al robot; ver la seccion 4.6 y "Problemas resueltos". La siguiente fase (evaluacion fija, instrumentacion de actuadores y una politica nueva con acciones acotadas y solo las observaciones disponibles en el robot) esta documentada en [siguiente-fase.md](siguiente-fase.md), con su codigo en [referencia-evaluacion.md](referencia-evaluacion.md). Sus resultados corrigen varias cifras de esta guia: escalon aislado de 5 cm al 27-63 % (no 7-9 cm), pendientes de 20° al 0 % para toda politica no entrenada en rampas, y el checkpoint provisional pasa a ser `robot_v1/model_1000.pt` (Revision 2 del 2026-09-21, tras corregir el evaluador: la primera entrega evaluo `robot_v1` con ruido y proponia `model_9999`).
+Esta guia cubre las cuatro fases tal como se entrenaron. Lo que vino despues esta en la [Parte 2b](guia-avanzada.md): como evaluar sin engañarse, por que acotar las acciones, el controlador nominal con residual aprendido, la parada como modo del controlador, los limites reales del motor y la exportacion. Tres cosas de esta pagina conviene leerlas con eso en mente:
+
+- Ninguna de estas politicas recorta las acciones: piden mas de ±90° de direccion y mas de 2.045 rad/s de traccion, y no se pueden llevar al robot tal cual.
+- Las tasas de exito de esta pagina son del curriculum de entrenamiento. Con una evaluacion fija (determinista y con cuota exacta), un escalon aislado de 5 cm se cruza entre el 21 y el 63 % de las veces segun la politica.
+- 4.41 N·m es el par de bloqueo extrapolado del motor y 2.045 rad/s un limite de operacion, no la velocidad sin carga. Los valores reales estan en la seccion 5 de la Parte 2b.
 
 ## Parte 1: El USD limpio
 
@@ -104,7 +106,7 @@ Por que registrar y no instanciar la config a mano en un script propio: el `trai
 
 ## Parte 4: El entorno, bloque a bloque
 
-El archivo `rover_env_cfg.py` define una clase `RoverEnvCfg` compuesta por bloques. Aqui va cada uno con los valores usados y, sobre todo, por que esos valores. Casi ninguno coincide con los ejemplos de Isaac Lab, y hay una razon: los ejemplos estan calibrados para cuadrupedos que van a 1-3 m/s, y este rover va a 0.167 m/s. 
+El archivo `rover_env_cfg.py` define una clase `RoverEnvCfg` compuesta por bloques. Aqui va cada uno con los valores usados y, sobre todo, por que esos valores. Casi ninguno coincide con los ejemplos de Isaac Lab, y hay una razon: los ejemplos estan calibrados para cuadrupedos que van a 1-3 m/s, y este rover iba a 0.167 m/s en estas fases.
 
 ### 4.1 Robot y actuadores
 
@@ -132,7 +134,9 @@ Los actuadores de Isaac Lab sobreescriben los drives del USD. Lo configurado en 
 | `direccion` | `reductor.*` | 20 | 3 | 100 | 10 |
 | `suspension` | `suspension`, `hombro.*`, `codo.*`, `union_sus.*` | **0** | 10 | 0 | 2 |
 
-1 cosas importante:
+Dos cosas importantes:
+
+- **4.41 N·m no es un par de trabajo.** Es el par de bloqueo extrapolado del datasheet, que el fabricante advierte que puede dañar el motorreductor. La carga sostenible es 0.981 N·m y el par instantaneo recomendado 2.452 N·m; ver la seccion 5 de la [Parte 2b](guia-avanzada.md).
 
 
 - **`effort_limit_sim = 0` en la suspension** es lo que la mantiene pasiva. Sin eso la politica descubre que puede usar hombros y codos como musculos y aprende a reptar, cosa que el robot real no puede hacer.
@@ -168,12 +172,12 @@ El terreno es una cuadricula de 20 filas por 20 columnas de parcelas de 5 m. Las
 | Parametro | Valor | Por que |
 | --- | --- | --- |
 | `size` | 5 m | Promocionar exige recorrer parte del terreno. Con 8 m eran 4 m por episodio, inalcanzable a 0.167 m/s |
-| `step_height_range` | 3 a 25 cm | 3 cm se sube casi rodando; hace falta un nivel 0 que se supere por accidente para que la exploracion descubra que trepar paga. 25 cm es 1.5 diametros de rueda, el limite teorico del rocker-bogie |
+| `step_height_range` | 3 a 25 cm | 3 cm se sube casi rodando; hace falta un nivel 0 que se supere por accidente para que la exploracion descubra que trepar paga. 25 cm es 1.5 diametros de rueda, un maximo holgado para el rocker-bogie |
 | `num_rows` | 20 | Con 10 el salto entre niveles era de 2.4 cm; con 20 es de 1.2. El nivel 1 pasa de 5.4 a 4.2 cm |
 | `step_width` | 0.9 m | El rover mide 0.826 m de punta a punta. Con el valor por defecto (0.3 m) esta a caballo entre tres peldaños y choca con el siguiente antes de subir el anterior |
 | `num_obstacles` | 20 | Con 6 en 25 m² un rover cruza la parcela sin tocar ninguno |
 
-Un dato que salio de la geometria y explica mucho: el radio de rueda es 8.15 cm, y un escalon de esa altura es el limite fisico para subir por rodadura. Por debajo, el punto de contacto queda bajo el eje y la rueda trepa sola; en el radio, el contacto esta a la altura del eje y solo puede empujar contra la pared. Por encima solo se sube si las otras ruedas empujan de forma coordinada. 
+Un dato de geometria que ayuda a leer los resultados: el radio de rueda es 8.15 cm. Por debajo de esa altura el punto de contacto queda bajo el eje y la rueda trepa rodando; a partir de ahi solo empuja contra la pared y hace falta que las otras ruedas empujen de forma coordinada. Es una referencia, no un limite duro: cuanto se sube por encima depende del par disponible y de la ganancia del servo (seccion 5.3 de la [Parte 2b](guia-avanzada.md)).
 ### 4.3 Curriculum propio
 
 El curriculum estandar de Isaac Lab (`terrain_levels_vel`) sube de nivel a quien recorre mas de medio terreno y baja a quien recorre menos de la mitad de lo comandado. Para un cuadrupedo eso funciona; para este rover no hay zona intermedia: cualquiera que no recorra 2.5 m en el episodio **baja** de nivel. El resultado era un curriculum que descendia sin parar aunque el rover mejorara.
@@ -239,7 +243,7 @@ El rover no tiene un destino. Recibe una velocidad y un rumbo, y su unica tarea 
 
 `resampling_time_range` es de 30 a 60 s, no los 10 s habituales. Con un rumbo nuevo cada 10 s, un episodio de 60 s tiene seis tramos en direcciones aleatorias: un paseo aleatorio que acaba cerca del origen aunque el rover se mueva todo el tiempo. Como el curriculum mide desplazamiento neto, nunca promocionaba.
 
-`lin_vel_x` va de 0.05 a 0.167 m/s, la velocidad real del motor. Se descarto subirla a 1 m/s en simulacion: con la misma potencia (9 W por rueda) el par caeria a 0.74 N·m y el rover no subiria nada. Potencia es par por velocidad; inventar un rover mas rapido produce una politica para un robot que no existe.
+`lin_vel_x` va de 0.05 a 0.167 m/s, el limite de operacion que se fijo para estas fases (2.045 rad/s de rueda). No es la velocidad sin carga del motor, que es 7.96 rad/s. La regla de fondo sigue valiendo: el par disponible cae con la velocidad, y subir la velocidad en simulacion sin modelar el motor real produce una politica para un robot que no existe. Como modelarlo esta en la seccion 5 de la [Parte 2b](guia-avanzada.md).
 
 ### 4.6 Acciones
 
@@ -248,7 +252,7 @@ traccion = mdp.JointVelocityActionCfg(joint_names=["llanta.*"], scale=2.045)
 direccion = mdp.JointPositionActionCfg(joint_names=["reductor.*"], scale=pi/2, use_default_offset=True)
 ```
 
-Diez acciones nominalmente en [-1, 1]. Las seis primeras se escalan a velocidad de rueda (±2.045 rad/s); las cuatro ultimas a angulo de direccion (±90°). **Ninguna de las dos lleva recorte**: la red gaussiana saca valores fuera de [-1, 1] (hasta ±3), asi que la politica pide hasta ±270° al reductor y velocidades de rueda de 30-47 rad/s (medido el 2026-09-19 con `evaluar_rover.py`). Fisicamente no llega ahi: el joint del USD limita el reductor a ±90° (`joint_pos_limits` = ±1.5708) y `velocity_limit_sim` frena la rueda en 2.045 rad/s. Lo que ocurre es que el servo de direccion empuja contra el tope a 20 N·m el 63-93 % del tiempo (por eso `penaliza_par` es dirección en un 92 %) y la traccion va a par maximo el 95 % del tiempo. Evaluando `denso1` con y sin recortes (variantes A/B/C/D, nivel 12) el resultado no cambia: acotar las acciones no cuesta rendimiento y elimina la saturacion. El clip de ±90° se acordo el 2026-09-12, pero el parche se pego en una copia del archivo fuera del paquete y nunca entro en vigor; se descubrio el 2026-09-19 al volcar la configuracion efectiva (`clip: null` en los `params/env.yaml` de todos los runs). Ver "Problemas resueltos". Se corrige en la tarea nueva de la siguiente fase, junto con el recorte de traccion.
+Diez acciones nominalmente en [-1, 1]. Las seis primeras se escalan a velocidad de rueda (±2.045 rad/s); las cuatro ultimas a angulo de direccion (±90°). **Ninguna de las dos lleva recorte**: la red gaussiana saca valores fuera de [-1, 1] (hasta ±3), asi que la politica pide hasta ±270° al reductor y velocidades de rueda de 30-47 rad/s (medido con `evaluar_rover.py`). Fisicamente no llega ahi: el joint del USD limita el reductor a ±90° (`joint_pos_limits` = ±1.5708) y `velocity_limit_sim` frena la rueda en 2.045 rad/s. Lo que ocurre es que el servo de direccion empuja contra el tope a 20 N·m el 63-93 % del tiempo (por eso `penaliza_par` es dirección en un 92 %) y la traccion va a par maximo el 95 % del tiempo. Evaluando `denso1` con y sin recortes (variantes A/B/C/D, nivel 12) el resultado no cambia: acotar las acciones no cuesta rendimiento y elimina la saturacion. Un recorte de ±90° que se creia activo nunca entro en vigor porque se edito una copia del archivo fuera del paquete; se vio al volcar la configuracion efectiva (`clip: null` en los `params/env.yaml` de todos los runs). Ver "Problemas resueltos" y la seccion 2 de la [Parte 2b](guia-avanzada.md), donde se acotan las dos acciones.
 
 Aqui esta la diferencia con el control por ICR de la Parte 1: alli un script calcula las diez consignas desde `v` y `w`; aqui la politica las decide una a una. Puede dosificar el par rueda a rueda al trepar, que es lo que hace un rover real.
 
@@ -450,7 +454,7 @@ Tras 10 000 iteraciones con 2048 entornos:
 
 Dos curriculos distintos (10 filas y 20 filas) convergieron al mismo 12.8 cm, lo que apuntaba a un limite real y no del curriculum. Un reentrenamiento desde cero con 6144 entornos y 8000 iteraciones (`clip90_cero`) dio el mismo resultado y es el checkpoint base de las fases siguientes: `logs/rsl_rl/rover_robert/*_clip90_cero/model_8000.pt`.
 
-**Correccion (2026-09-19):** el nombre `clip90_cero` engaña. Ese run se lanzo creyendo que llevaba el clip de ±90° en la direccion, pero la configuracion efectiva guardada en `params/env.yaml` dice `clip: null`: el parche nunca llego al archivo del paquete. El joint del USD si tiene tope en ±90°, asi que fisicamente el rover nunca giro mas; lo que hacia la politica era saturar el servo contra el tope. Medido despues (evaluacion A/B/C/D de `denso1`, 2026-09-19): acotar la direccion y la traccion no cuesta rendimiento. Lo que si demostro ese run es que el entrenamiento es reproducible: misma config, mismo resultado que el original.
+**Aviso:** el nombre `clip90_cero` engaña. Ese run no llevaba el recorte de ±90° en la direccion: la configuracion efectiva guardada en `params/env.yaml` dice `clip: null`, porque el cambio se habia hecho en una copia del archivo fuera del paquete. El joint del USD si tiene tope en ±90°, asi que fisicamente el rover nunca giro mas; lo que hacia la politica era saturar el servo contra el tope. Medido despues en terreno denso, acotar la direccion y la traccion no cuesta rendimiento. Lo que si demostro ese run es que el entrenamiento es reproducible: misma config, mismo resultado que el original.
 
 <img width="1707" height="880" alt="image" src="https://github.com/user-attachments/assets/dca7e3f1-68f8-41ca-9e12-78f7c41b2060" />
 
@@ -479,11 +483,8 @@ Seis runs de afinado:
 | `escalera5` | Bugs corregidos, episodios de 40 s | Diagnostico por escalon: 5 cm 70-80 %, 7 cm 30-50 %, 9 cm 10-25 %, 11-12 cm ~5 %, 13 cm y mas 0 % |
 | `escalera6` | Sin terminacion `encallado`, 3000 iteraciones mas | Perfil identico |
 
-La caida gradual de exito con la altura apuntaba a un limite de politica. Pero la captura del `play.py` mostro otra cosa: la rueda delantera sube, y **la rueda media choca de frente con la cara del escalon** y no puede pivotar. Es una limitacion geometrica del rocker-bogie con ruedas de 8 cm de radio, no de la politica.
+La caida gradual de exito con la altura apuntaba a un limite de politica. Pero la captura del `play.py` mostro el modo de fallo: la rueda delantera sube, y **la rueda media choca de frente con la cara del escalon** y no puede pivotar. Cuanto pesa eso depende del par: con el actuador de estas fases el empuje no alcanza, y con mas par disponible la misma rueda media pasa escalones mas altos (seccion 5.3 de la [Parte 2b](guia-avanzada.md)).
 
-![Rueda media bloqueada](imagenes/07-escalera-rueda-media.png)
-
-*Captura de play.py en escalera6: la rueda delantera ya esta sobre el escalon y la media choca de frente con la cara vertical. Con la trasera empujando y la delantera tirando no le alcanza para pivotar.*
 
 <img width="1287" height="746" alt="image" src="https://github.com/user-attachments/assets/beed1b9d-1972-457d-8e8a-02a00ce15dc1" />
 
@@ -491,7 +492,7 @@ La caida gradual de exito con la altura apuntaba a un limite de politica. Pero l
 
 *Curriculum/exito/escalon_Xcm en escalera6: caida gradual de ~65 % en 5 cm a ~5 % en 11-12 cm y cero a partir de 13 cm.*
 
-**Techo practico: 7 a 9 cm de escalon.** La fase quedo aparcada.
+**Techo practico con el actuador de estas fases: 7 a 9 cm de escalon en la escalera de entrenamiento.** La fase quedo aparcada.
 
 Queda una prueba pendiente que aclararia si el limite es aun mas bajo: un test fisico con traccion maxima y sin politica no subio ni un escalon de 2 cm, y la sospecha es que la terminacion `encallado` reseteaba al rover al morder el borde. No se llego a confirmar.
 
@@ -537,7 +538,7 @@ Es la tarea original (curriculum `terreno`, rumbos aleatorios, sin `AlturaGanada
 
 *Terreno denso: de izquierda a derecha, columnas de bloques y fosos, losas con huecos, rejilla y rugosidad; la dificultad crece hacia el fondo.*
 
-`denso1`, 3000 iteraciones desde `clip90_cero`: `Curriculum/terreno` en 12 de 20 (bloques y fosos de ±9.6 cm, huecos de 15 cm) y aun subiendo despacio. Terminaciones: 99.8 % tiempo agotado, 0.1 % vuelco, 0.03 % encallado. El techo coincide con el limite de ~9 cm de escalon que impone la rueda media.
+`denso1`, 3000 iteraciones desde `clip90_cero`: `Curriculum/terreno` en 12 de 20 (bloques y fosos de ±9.6 cm, huecos de 15 cm) y aun subiendo despacio. Terminaciones: 99.8 % tiempo agotado, 0.1 % vuelco, 0.03 % encallado. El techo coincide con lo que la politica cruzaba en escalones con el actuador de entonces.
 
 <img width="387" height="269" alt="image" src="https://github.com/user-attachments/assets/dfd31780-d21b-4b47-8764-b761d00c0759" />
 
@@ -545,11 +546,11 @@ Es la tarea original (curriculum `terreno`, rumbos aleatorios, sin `AlturaGanada
 
 *denso1: Curriculum/terreno llega a 12 de 20 y sigue subiendo despacio; seguir_velocidad baja de 2.0 a 1.0 a medida que el terreno se endurece; las terminaciones siguen siendo 99.8 % tiempo agotado.*
 
-**Es la candidata a politica final para Nav2**, porque es la unica de las cuatro que responde a comandos de velocidad y rumbo arbitrarios sobre terreno variado.
+Fue la base de las politicas posteriores, porque es la unica de las cuatro que responde a comandos de velocidad y rumbo arbitrarios sobre terreno variado. Como se paso de aqui a una politica utilizable esta en la [Parte 2b](guia-avanzada.md).
 
 ## Problemas resueltos
 
-En orden cronologico. Cada uno costo al menos un entrenamiento.
+Cada uno costo al menos un entrenamiento.
 
 - **`KeyError: 'class_name'` al construir el runner.** Se instanciaba la config a mano en un script propio, saltandose el decorador de Hydra de `train.py`. Registrar la tarea y usar los scripts oficiales.
 - **`Failed to find a prim at path .../Robot/base_link`.** El USD tiene un nivel `cuerpo_suspension` intermedio. Añadirlo al `prim_path` del sensor y del contacto.
@@ -560,7 +561,7 @@ En orden cronologico. Cada uno costo al menos un entrenamiento.
 - **El curriculum seguia sin subir.** Rumbos cada 10 s → paseo aleatorio. Subir a 30-60 s.
 - **`NaN` en el `std` de la politica (`normal expects all elements of std >= 0.0`).** Tres intentos: spawn mas alto y reset mas corto (por si nacian dentro de escalones), `clip` en observaciones (no sirve: `clamp` deja pasar `NaN`), terminacion `inestable` y solver mas fino. Seguia fallando **en la misma iteracion** al reanudar, lo que revelo que era determinista: la red divergia por la escala dispar de las observaciones (de 0.1 a 50). Activar normalizacion de observaciones, bajar el learning rate y el grad norm, entrenar de cero.
 - **Los cambios no se aplicaban.** Se editaba una copia del archivo en la raiz de Isaac Lab; la tarea leia la del paquete. Borrar las copias.
-- **El nivel 0 era ya el limite fisico.** 8 cm de escalon con 8.15 cm de radio. Bajar el minimo a 3 cm y subir a 20 filas.
+- **El nivel 0 era ya demasiado alto.** 8 cm de escalon con 8.15 cm de radio no se superan por accidente, asi que la exploracion nunca descubria que trepar paga. Bajar el minimo a 3 cm y subir a 20 filas.
 - **`Replication of this type is not supported`.** El USD contenia la escena entera. Limpiarlo.
 - **`AlturaGanada` pagaba 0 todo el run.** Fijaba el record con el rover 65 cm en el aire tras el reset. Esperar 1 s.
 - **Tasas de exito falsas.** Los terminos de curriculum solo veian el ultimo lote de resets. Acumular con `ManagerTermBase`.
@@ -573,7 +574,7 @@ En orden cronologico. Cada uno costo al menos un entrenamiento.
 - **Un script propio no imprimia nada aunque terminara bien.** `app.close()` sale con `os._exit` y el buffer de stdout se pierde. Escribir los resultados a archivo o usar `flush=True`.
 - **Segfault de Kit a 0 ms de arranque.** Habia otro Isaac Sim abierto (un `play.py` con viewport) y el segundo se quedaba sin VRAM. Comprobar con `nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv` antes de lanzar.
 - **La prueba con 60 iteraciones no mostraba resets por tiempo.** 60 iteraciones × 24 pasos × 0.02 s son 29 s, menos que un episodio de 40 s. Un diagnostico necesita 170-250 iteraciones.
-- **El clip de direccion nunca estuvo activo.** Se acordo `clip={".*": (-pi/2, pi/2)}` en `direccion` el 2026-09-12 y se dio por hecho durante una semana y cinco entrenamientos. Al volcar la configuracion efectiva (`scripts/referencia_reproducible.py`, y `params/env.yaml` de cada run) aparecio `clip: null`: el parche se habia pegado en la copia de `rover_env_cfg.py` que vivia en la raiz de Isaac Lab, no en la del paquete. Leccion doble: leer siempre la configuracion efectiva que guarda el run, no la que uno cree haber escrito; y no dejar copias de los archivos de configuracion fuera del paquete (ya estaban implicadas en otro problema anterior).
+- **El clip de direccion nunca estuvo activo.** Se añadio `clip={".*": (-pi/2, pi/2)}` en `direccion` y se dio por hecho durante cinco entrenamientos. Al volcar la configuracion efectiva (`scripts/referencia_reproducible.py`, y `params/env.yaml` de cada run) aparecio `clip: null`: el parche se habia pegado en la copia de `rover_env_cfg.py` que vivia en la raiz de Isaac Lab, no en la del paquete. Leccion doble: leer siempre la configuracion efectiva que guarda el run, no la que uno cree haber escrito; y no dejar copias de los archivos de configuracion fuera del paquete (ya estaban implicadas en otro problema anterior).
 - **La escalera no era la que se creia.** Un `sed` de una prueba anterior habia dejado una lista de escalones vieja y el de 18 cm no existia. `ver_parches.py` lo delato (maximo en 1.11 m en vez de 1.37). Comprobar la linea `[escalera_progresiva] ...` que imprime el terreno al arrancar.
 
 ## Donde esta cada cosa
@@ -582,7 +583,7 @@ En orden cronologico. Cada uno costo al menos un entrenamiento.
 | --- | --- |
 | Codigo completo de la fase 1 | [referencia-completa.md](referencia-completa.md) |
 | Codigo completo de las fases 2 a 4, scripts de diagnostico, comandos y cuadro de runs | [referencia-fases-2-4.md](referencia-fases-2-4.md) |
-| Siguiente fase: evaluacion fija, instrumentacion, tarea `robot_v1` (informe y codigo) | [siguiente-fase.md](siguiente-fase.md), [referencia-evaluacion.md](referencia-evaluacion.md) |
+| Evaluar, acotar, controlar, parar y exportar la politica | [guia-avanzada.md](guia-avanzada.md) |
 | En la maquina Ubuntu | `~/Github/IsaacLab/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/rover/` y `~/Github/IsaacLab/scripts/` |
 | Checkpoints | `~/Github/IsaacLab/logs/rsl_rl/rover_robert/<fecha>_<run_name>/model_N.pt` |
 | Politica exportada (la genera `play.py`) | `.../<run>/exported/policy.pt` y `policy.onnx` |

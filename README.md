@@ -24,3 +24,4 @@ Trabajo con robots propios del semillero. A diferencia de los tutoriales, aqui s
 - [Rover ROBERT: de Fusion 360 a una politica de RL](Robert/README.md)
   1. [Simulacion en Isaac Sim: importar, resolver el lazo cerrado y controlar por ROS2](Robert/01-simulacion/README.md)
   2. [Reinforcement Learning en Isaac Lab](Robert/02-reinforcement-learning/README.md)
+  3. [De una politica que entrena a una politica que se puede usar: evaluar, acotar, controlar, parar y exportar](Robert/02-reinforcement-learning/guia-avanzada.md)
